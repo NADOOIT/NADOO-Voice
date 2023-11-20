@@ -229,93 +229,94 @@ def process_entire_book(book_text):
     return all_chapters  # This will be a list of all chapter dictionaries
 
 
+def start_conversion(mode_combobox, text_area):
+    mode = mode_combobox.get()
+    input_text = text_area.get("1.0", tk.END).strip()  # Get text from text area
+
+    if mode == "Normal":
+        output_file = simpledialog.askstring(
+            "File Name", "Enter output file name (without extension):", parent=root
+        )
+        if input_text and output_file:
+            text_to_speech(input_text, output_file=output_file + ".mp3")
+        else:
+            print("No input provided.")
+
+    elif mode == "Book" and input_text:
+        import threading
+
+        chapters = process_entire_book(input_text)
+        threads = []  # List to keep track of threads
+
+        import time
+        import threading
+        import re
+
+        # Function to sanitize filenames
+        def sanitize_filename(filename):
+            """Remove or replace invalid characters for file names."""
+            invalid_chars = (
+                r'[<>:"/\\|?*]'  # Regex pattern for invalid filename characters
+            )
+            return re.sub(
+                invalid_chars, "_", filename
+            )  # Replace invalid characters with underscore
+
+        # Start timing
+        start_time = time.time()
+
+        # Process the book and create threads for text to speech
+        chapters = process_entire_book(input_text)
+        threads = []  # List to keep track of threads
+        chapter_number = 1  # Initialize chapter number counter
+
+        for chapter in chapters:
+            title = chapter.get("chapter_title", "Untitled")
+            text = chapter.get("chapter_content", "")
+
+            # Combine the title and text, separated by a period for natural speech pause
+            combined_text = f"{title}. {text}"
+
+            # Modify and sanitize the title to include chapter number
+            title_with_number = f"{chapter_number:02d}_{title}"
+            sanitized_title = sanitize_filename(title_with_number)
+
+            # Print the chapter title and a snippet of the content for debugging
+            print(f"Processing chapter: {sanitized_title}")
+            print(
+                f"Content snippet: {combined_text[:100]}..."
+            )  # Updated to show combined text
+
+            # Create a thread for each text_to_speech call
+            thread = threading.Thread(
+                target=text_to_speech,
+                kwargs={
+                    "input_text": combined_text,
+                    "output_file": f"{sanitized_title}.mp3",
+                },
+            )
+            threads.append(thread)
+            thread.start()
+
+            chapter_number += 1  # Increment the chapter number for the next chapter
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+        # End timing and print total elapsed time
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Total processing time: {elapsed_time:.2f} seconds")
+
+    else:
+        print("No input provided.")
+
+
 # Function to create and handle the GUI
 def create_gui():
     root = tk.Tk()
     root.title("Text to Speech Converter")
-
-    def start_conversion():
-        mode = mode_combobox.get()
-        input_text = text_area.get("1.0", tk.END).strip()  # Get text from text area
-
-        if mode == "Normal":
-            output_file = simpledialog.askstring(
-                "File Name", "Enter output file name (without extension):", parent=root
-            )
-            if input_text and output_file:
-                text_to_speech(input_text, output_file=output_file + ".mp3")
-            else:
-                print("No input provided.")
-
-        elif mode == "Book" and input_text:
-            import threading
-
-            chapters = process_entire_book(input_text)
-            threads = []  # List to keep track of threads
-
-            import time
-            import threading
-            import re
-
-            # Function to sanitize filenames
-            def sanitize_filename(filename):
-                """Remove or replace invalid characters for file names."""
-                invalid_chars = (
-                    r'[<>:"/\\|?*]'  # Regex pattern for invalid filename characters
-                )
-                return re.sub(
-                    invalid_chars, "_", filename
-                )  # Replace invalid characters with underscore
-
-            # Start timing
-            start_time = time.time()
-
-            # Process the book and create threads for text to speech
-            chapters = process_entire_book(input_text)
-            threads = []  # List to keep track of threads
-            chapter_number = 1  # Initialize chapter number counter
-
-            for chapter in chapters:
-                title = chapter.get("chapter_title", "Untitled")
-                text = chapter.get("chapter_content", "")
-
-                # Combine the title and text, separated by a period for natural speech pause
-                combined_text = f"{title}. {text}"
-
-                # Modify and sanitize the title to include chapter number
-                title_with_number = f"{chapter_number:02d}_{title}"
-                sanitized_title = sanitize_filename(title_with_number)
-
-                # Print the chapter title and a snippet of the content for debugging
-                print(f"Processing chapter: {sanitized_title}")
-                print(
-                    f"Content snippet: {combined_text[:100]}..."
-                )  # Updated to show combined text
-
-                # Create a thread for each text_to_speech call
-                thread = threading.Thread(
-                    target=text_to_speech,
-                    kwargs={
-                        "input_text": combined_text,
-                        "output_file": f"{sanitized_title}.mp3",
-                    },
-                )
-                threads.append(thread)
-                thread.start()
-
-                chapter_number += 1  # Increment the chapter number for the next chapter
-
-            # Wait for all threads to complete
-            for thread in threads:
-                thread.join()
-
-            # End timing and print total elapsed time
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            print(f"Total processing time: {elapsed_time:.2f} seconds")
-
-        else:
-            print("No input provided.")
 
     # Mode selection
     mode_label = tk.Label(root, text="Select Mode:")
@@ -330,7 +331,9 @@ def create_gui():
     text_area.pack(padx=10, pady=10)
 
     # Start button
-    start_button = tk.Button(root, text="Start", command=start_conversion)
+    start_button = tk.Button(
+        root, text="Start", command=start_conversion(mode_combobox, text_area)
+    )
     start_button.pack()
 
     root.mainloop()
