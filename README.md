@@ -10,6 +10,7 @@ NADOO Voice is a cutting-edge text-to-speech wrapper built around the OpenAI TTS
 - **Voice Selection**: Choose from a variety of voices via a dropdown menu.
 - **Book Mode**: Special feature for books, allowing the AI to identify and create separate audio files for chapters and subchapters, enhancing the audiobook experience.
 - **Chapter-wise Playback**: In Book Mode, users can navigate through audio chapters easily, ideal for audiobook listeners and learners.
+- **Multi-Lingual Translation Support**: NADOO Voice supports a variety of languages, including English, German, French, Spanish, Italian, and more. Select the languages of your choice from the dropdown menu. Book can be provided in any language, translated text is saved.
 
 ## Installation
 
