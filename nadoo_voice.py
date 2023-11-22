@@ -201,7 +201,7 @@ def combine_chapter_responses(response_list):
 
 
 # Function to process the entire book and return chapters in JSON
-def get_chapters_for_text(text):
+def get_chapters_for_text(text, book_title="Untitled"):
     print("Processing entire book...")
 
     # Split the book into chunks
