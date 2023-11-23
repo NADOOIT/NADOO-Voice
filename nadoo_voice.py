@@ -8,10 +8,13 @@ import json
 import re
 import threading
 import time
+import tkinter.filedialog as filedialog
 
 
 # Function to convert text to speech and save as an MP3 file
-def text_to_speech(input_text, model="tts-1", voice="onyx", output_file="speech.mp3"):
+def text_to_speech(
+    input_text, model="tts-1-hd", voice="onyx", output_file="speech.mp3"
+):
     try:
         # Define the path for the output file
         speech_file_path = Path(__file__).parent / output_file
@@ -68,10 +71,11 @@ def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):
     # Detailed prompt construction for GPT models
     prompt = (
         f"Assistive AI, your task is to analyze the text chunk provided and identify chapters within it. "
+        f"You can do this. Give this your best shot. Take time to think. "
         f"Start from the last known chapter titled '{last_chapter_title}'. "
         f"Chapter Titles usually are written in CAPITAL LETTERS"
         f"They also usually take a whole line."
-        f"Be carful not to include any other text in the chapter title and also that in the text the chapter titles are somethimes mentioned"
+        f"Be carful not to include any other text in the chapter title and also that in the text the chapter titles are somethimes mentioned. DO NOT include those mentions in the chapter title."
         f"Examine the text for any new chapter, and return their titles and full content. It is absolutly crucial that you return the full content of the chapters."
         f"No not change any of the text simply copy and past it."
         f"Be carfull not to add any styling to the text like /n or /t"
@@ -363,37 +367,35 @@ def setup_main_gui(root):
 
     :param root: The root window of the tkinter application.
     """
+    root.grid_columnconfigure(0, weight=1)  # Make column 0 expandable
+    root.grid_rowconfigure(1, weight=1)  # Make row 1 expandable (for text area)
+
     # Mode selection
     mode_label = tk.Label(root, text="Select Mode:")
-    mode_label.pack()
+    mode_label.grid(row=0, column=0, sticky="w")
 
     mode_combobox = ttk.Combobox(root, values=["Normal", "Book"])
-    mode_combobox.pack()
-    mode_combobox.set("Normal")
+    mode_combobox.grid(row=0, column=0, sticky="ew")
 
     # Book title entry (initially hidden)
     book_title_label = tk.Label(root, text="Book Title:")
-    book_title_label.pack()
     book_title_entry = tk.Entry(root)
-    book_title_entry.pack()
-    book_title_label.pack_forget()  # Hide initially
-    book_title_entry.pack_forget()  # Hide initially
 
     # Function to show/hide book title entry based on mode
     def on_mode_change(event):
         mode = mode_combobox.get()
         if mode == "Book":
-            book_title_label.pack()
-            book_title_entry.pack()
+            book_title_label.grid(row=1, column=0, sticky="w")
+            book_title_entry.grid(row=1, column=0, sticky="ew")
         else:
-            book_title_label.pack_forget()
-            book_title_entry.pack_forget()
+            book_title_label.grid_remove()
+            book_title_entry.grid_remove()
 
     mode_combobox.bind("<<ComboboxSelected>>", on_mode_change)
 
     # Text area for input
-    text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, height=10, width=50)
-    text_area.pack(padx=10, pady=10)
+    text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD)
+    text_area.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
     # Start button for initiating conversion
     start_button = tk.Button(
@@ -403,7 +405,32 @@ def setup_main_gui(root):
             mode_combobox, text_area, book_title_entry, root
         ),
     )
-    start_button.pack()
+    start_button.grid(row=3, column=0, pady=10)
+
+    # Load Book button
+    load_book_button = tk.Button(
+        root, text="Load Book", command=lambda: load_book(root)
+    )
+    load_book_button.grid(row=4, column=0, pady=10)
+
+
+def load_book(root):
+    books_folder = "books"
+    os.makedirs(books_folder, exist_ok=True)  # Ensure the books folder exists
+
+    # Open a dialog to select a book file
+    book_file = filedialog.askopenfilename(
+        initialdir=books_folder,
+        title="Select Book",
+        filetypes=(("JSON Files", "*.json"), ("All Files", "*.*")),
+    )
+
+    if book_file:
+        # Load the selected book
+        with open(book_file, "r", encoding="utf-8") as file:
+            chapters = json.load(file)
+        book_title = os.path.splitext(os.path.basename(book_file))[0].replace("_", " ")
+        display_chapters_for_review(chapters, book_title, root)
 
 
 def start_conversion_wrapper(mode_combobox, text_area, book_title_entry, root):
@@ -413,12 +440,34 @@ def start_conversion_wrapper(mode_combobox, text_area, book_title_entry, root):
 
     def process_text():
         chapters = get_chapters_for_text(input_text, book_title)  # Pass book title
-        display_chapters_for_review(chapters, root, book_title)  # Pass book title
+        display_chapters_for_review(chapters, book_title, root)  # Pass book title
 
     threading.Thread(target=process_text).start()
 
+    # Function to save chapters to a JSON file
+    import os
+    import tkinter.filedialog as filedialog
 
-def display_chapters_for_review(chapters, root):
+
+def save_chapters_to_json(book_title, chapters):
+    try:
+        books_folder = "books"
+        os.makedirs(books_folder, exist_ok=True)
+
+        json_filename = (
+            f"{book_title.replace(' ', '_')}.json" if book_title else "chapters.json"
+        )
+        json_filepath = os.path.join(books_folder, json_filename)
+
+        with open(json_filepath, "w", encoding="utf-8") as file:
+            json.dump(chapters, file, indent=4)
+
+        print(f"Chapters saved to {json_filepath}")
+    except Exception as e:
+        print(f"Error saving chapters: {e}")
+
+
+def display_chapters_for_review(chapters, book_title, root):
     review_window = tk.Toplevel(root)
     review_window.title("Review Chapters")
     current_chapter_index = 0
@@ -542,15 +591,13 @@ def display_chapters_for_review(chapters, root):
     chapter_text_area.bind("<KeyRelease>", lambda event: update_chapter_data())
     chapter_title_entry.bind("<KeyRelease>", lambda event: update_chapter_data())
 
-    # Function to save chapters to a JSON file
-    def save_chapters_to_json():
-        with open("chapters.json", "w", encoding="utf-8") as file:
-            json.dump(chapters, file, indent=4)
-        print("Chapters saved to chapters.json")
-
     # Button to save chapters to JSON
     save_json_button = tk.Button(
-        review_window, text="Save Chapters to JSON", command=save_chapters_to_json
+        review_window,
+        text="Save Chapters to JSON",
+        command=lambda: save_chapters_to_json(
+            book_title, chapters
+        ),  # Use a lambda function
     )
     save_json_button.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
 
