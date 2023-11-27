@@ -59,29 +59,31 @@ def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):
         "chapters": [
             {
                 "chapter_title": "Chapter 1",
-                "chapter_content": "Content of Chapter 1...",
+                "chapter_content": "Full found Content of Chapter 1...",
             },
             {
                 "chapter_title": "Chapter 2",
-                "chapter_content": "Content of Chapter 2...",
+                "chapter_content": "Full found Content of Chapter 2...",
             },
         ]
     }
 
     # Detailed prompt construction for GPT models
     prompt = (
-        f"Assistive AI, your task is to analyze the text chunk provided and identify chapters within it. "
-        f"You can do this. Give this your best shot. Take time to think. "
-        f"Start from the last known chapter titled '{last_chapter_title}'. "
-        f"Chapter Titles usually are written in CAPITAL LETTERS"
+        f"You are an helpfull AI assistant. You are helping to find the structure of a book inside a text."
+        f"You are given a chunk of text. This text needs to be analysed."
+        f"A chunk can contain a a chapter title but does not need to start with it."
+        f"If the text does not start with a new chapter title use this title ->'{last_chapter_title}'<- for the text until you find a new chapter. "
+        f"Chapter Titles usually are written in CAPITAL LETTERS and formed as a question."
         f"They also usually take a whole line."
         f"Be carful not to include any other text in the chapter title and also that in the text the chapter titles are somethimes mentioned. DO NOT include those mentions in the chapter title."
         f"Examine the text for any new chapter, and return their titles and full content. It is absolutly crucial that you return the full content of the chapters."
         f"No not change any of the text simply copy and past it."
         f"Be carfull not to add any styling to the text like /n or /t"
         f"Here is the text chunk for analysis: {chunk}."
-        f"If no new chapters are found, simply use the last chapter for the rest of the found chapter content. "
+        f"Again If no new chapters are found, simply use this ->'{last_chapter_title}'<- for the rest of the found chapter content. "
         f"Your response should be in a JSON format similar to this example: {json.dumps(example_json)}"
+        f"You can do this. Give this your best shot. Take time to think. "
     )
 
     client = openai.OpenAI()  # Ensure the OpenAI client is set up with an API key
@@ -137,10 +139,7 @@ def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):
     return []  # Return an empty list only if all attempts fail
 
 
-openai.ConflictError
-
-
-def split_into_chunks(text, chunk_size=500):
+def split_into_chunks(text, chunk_size=400):
     """
     Splits the book text into manageable chunks, trying to break at sentence endings.
     'chunk_size' is in characters, adjust based on testing.
@@ -204,57 +203,60 @@ def combine_chapter_responses(response_list):
     return combined_chapters
 
 
-# Function to process the entire book and return chapters in JSON
+import re
+
+
+def word_list(text):
+    # Split text into words, considering punctuation as separate entities
+    return re.findall(r"\b\w+\b|\S", text.lower())
+
+
 def get_chapters_for_text(text, book_title="Untitled"):
     print("Processing entire book...")
 
-    # Split the book into chunks
-    print("Splitting book into chunks...")
     chunks = split_into_chunks(text)
     all_chapters = []
     last_chapter_title = ""  # Initialize with an empty string
 
-    for chunk in chunks:
-        print(f"Processing chunk: {chunk}")
+    for chunk_index, chunk in enumerate(chunks):
+        print(f"Processing chunk {chunk_index + 1}: {chunk}")
         response = gpt_prompt_for_chapter_analysis(chunk, last_chapter_title)
-
-        # Extract the chapters from the response
         chapters = response.get("chapters", [])
 
-        # Check if the response contains any chapters
-        if not chapters:
-            print("No chapters found in response.")
-            continue
+        combined_chapter_words = []
 
-        # Check if chapters list is not empty before updating last_chapter_title
-        if chapters:
-            # print(chapters)
-            last_chapter = chapters[-1]
+        for chapter in chapters:
+            print(f"Found chapter: {chapter.get('chapter_title')}")
+            print(f"Chapter content: {chapter.get('chapter_content')}")
 
-            # print(f"Last chapter : {last_chapter}")
+            title = chapter.get("chapter_title", "Untitled")
+            content = chapter.get("chapter_content", "")
+            last_chapter_title = title
+            combined_chapter_words.extend(word_list(title + " " + content))
 
-            # Update the last chapter title
-            last_chapter_title = last_chapter.get("chapter_title", last_chapter_title)
+            chapter_found = False
+            for chapter_dict in all_chapters:
+                if title == chapter_dict.get("chapter_title"):
+                    chapter_found = True
+                    chapter_dict["chapter_content"] += " " + content
+                    break
+            if not chapter_found:
+                all_chapters.append(
+                    {"chapter_title": title, "chapter_content": content}
+                )
 
-            # we will loop through the chapters and add them to the all_chapters list
-            # We will first check if the chapter is already in the list if so we will append the content to the existing chapter
-            # if not we will add the chapter to the list
-            for chapter in chapters:
-                title = chapter.get("chapter_title", "Untitled")
-                content = chapter.get("chapter_content", "")
-                chapter_found = False
-                for chapter_dict in all_chapters:
-                    if title == chapter_dict.get("chapter_title"):
-                        chapter_found = True
-                        chapter_dict["chapter_content"] += content
-                        break
-                if not chapter_found:
-                    all_chapters.append(chapter)
+        chunk_words = word_list(chunk)
+        missing_words = [
+            word for word in chunk_words if word not in combined_chapter_words
+        ]
 
-    return all_chapters  # This will be a list of all chapter dictionaries
+        if missing_words:
+            print(f"Missing words in chunk {chunk_index + 1}: {missing_words}")
+
+    return all_chapters
 
 
-def split_into_subchapters(chapter_content, max_length=4096):
+def split_into_subchapters(chapter_content, max_length=4000):
     """
     Splits a long chapter into subchapters based on a maximum character length.
     Tries to split at paragraph ends for natural breaks.
@@ -285,62 +287,9 @@ def sanitize_filename(filename):
     )  # Replace invalid characters with underscore
 
 
-def combine_text_for_subchapter(title, subchapter_number, subchapter_content):
-    return f"{title} Subchapter {subchapter_number}. {subchapter_content}"
-
-
 def sanitize_filename_from_title(title, chapter_number, subchapter_number):
     sanitized_title = re.sub(r'[<>:"/\\|?*]', "_", title)
     return f"{chapter_number:02d}_{sanitized_title}_{subchapter_number:02d}"
-
-
-def get_chapter_audio_for_chapter(chapter, chapter_number):
-    chapter_audio_data = []
-    title = chapter.get("chapter_title", "Untitled")
-    text = chapter.get("chapter_content", "")
-    subchapters = split_into_subchapters(text)
-
-    for i, subchapter_content in enumerate(subchapters, start=1):
-        combined_text = combine_text_for_subchapter(title, i, subchapter_content)
-        sanitized_title = sanitize_filename_from_title(title, chapter_number, i)
-
-        # Assuming text_to_speech function returns the path of the audio file
-        audio_path = text_to_speech(combined_text, output_file=sanitized_title + ".mp3")
-        chapter_audio = {"text": combined_text, "audio_path": audio_path}
-        chapter_audio_data.append(chapter_audio)
-
-    return chapter_audio_data
-
-
-from threading import Lock
-
-
-def get_chapters_audio_for_chapters(chapters):
-    threads = []
-    chapter_audios = []
-    chapter_number = 1
-    audio_list_lock = Lock()  # Create a lock for the shared resource
-
-    def thread_task(chapter, chapter_number, chapter_audios, lock):
-        chapter_audio_data = get_chapter_audio_for_chapter(chapter, chapter_number)
-        with lock:  # Acquire lock before modifying the shared resource
-            chapter_audios.extend(chapter_audio_data)
-
-    for chapter in chapters:
-        # Pass the lock to the thread
-        thread = threading.Thread(
-            target=thread_task,
-            args=(chapter, chapter_number, chapter_audios, audio_list_lock),
-        )
-        threads.append(thread)
-        thread.start()
-        chapter_number += 1
-
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
-
-    return chapter_audios
 
 
 import tkinter as tk
@@ -367,15 +316,14 @@ def setup_main_gui(root):
 
     :param root: The root window of the tkinter application.
     """
-    root.grid_columnconfigure(0, weight=1)  # Make column 0 expandable
-    root.grid_rowconfigure(1, weight=1)  # Make row 1 expandable (for text area)
+    root.grid_columnconfigure(0, weight=1)  # Make the main column expandable
 
     # Mode selection
     mode_label = tk.Label(root, text="Select Mode:")
-    mode_label.grid(row=0, column=0, sticky="w")
+    mode_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
     mode_combobox = ttk.Combobox(root, values=["Normal", "Book"])
-    mode_combobox.grid(row=0, column=0, sticky="ew")
+    mode_combobox.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
 
     # Book title entry (initially hidden)
     book_title_label = tk.Label(root, text="Book Title:")
@@ -385,8 +333,8 @@ def setup_main_gui(root):
     def on_mode_change(event):
         mode = mode_combobox.get()
         if mode == "Book":
-            book_title_label.grid(row=1, column=0, sticky="w")
-            book_title_entry.grid(row=1, column=0, sticky="ew")
+            book_title_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
+            book_title_entry.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
         else:
             book_title_label.grid_remove()
             book_title_entry.grid_remove()
@@ -397,21 +345,38 @@ def setup_main_gui(root):
     text_area = scrolledtext.ScrolledText(root, wrap=tk.WORD)
     text_area.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
+    # Button row configuration
+    button_frame = tk.Frame(root)
+    button_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=10)
+    button_frame.grid_columnconfigure(0, weight=1)
+    button_frame.grid_columnconfigure(1, weight=1)
+
     # Start button for initiating conversion
     start_button = tk.Button(
-        root,
+        button_frame,
         text="Start",
         command=lambda: start_conversion_wrapper(
             mode_combobox, text_area, book_title_entry, root
         ),
     )
-    start_button.grid(row=3, column=0, pady=10)
+    start_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
     # Load Book button
     load_book_button = tk.Button(
-        root, text="Load Book", command=lambda: load_book(root)
+        button_frame, text="Load Book", command=lambda: load_book(root)
     )
-    load_book_button.grid(row=4, column=0, pady=10)
+    load_book_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+    def open_empty_review_gui():
+        empty_chapters = []  # Empty list of chapters
+        empty_book_title = ""  # Empty book title
+        display_chapters_for_review(empty_chapters, empty_book_title, root)
+
+    # New Book button
+    new_book_button = tk.Button(
+        button_frame, text="New Book", command=open_empty_review_gui
+    )
+    new_book_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
 
 def load_book(root):
@@ -512,6 +477,28 @@ def display_chapters_for_review(chapters, book_title, root):
             current_chapter_index = selection[0]
             update_chapter_display(current_chapter_index)
 
+    # Function to add a new chapter
+    def add_new_chapter():
+        new_chapter = {"chapter_title": "New Chapter", "chapter_content": ""}
+        chapters.append(new_chapter)
+        refresh_chapter_list()
+        chapter_list.selection_set(len(chapters) - 1)  # Select the new chapter
+        update_chapter_display(len(chapters) - 1)  # Display the new chapter
+
+    # Function to delete the current chapter
+    def delete_current_chapter():
+        nonlocal current_chapter_index
+        if 0 <= current_chapter_index < len(chapters):
+            del chapters[current_chapter_index]
+            refresh_chapter_list()
+            new_index = min(current_chapter_index, len(chapters) - 1)
+            if new_index >= 0:
+                chapter_list.selection_set(new_index)
+                update_chapter_display(new_index)
+            else:
+                chapter_title_var.set("")
+                chapter_text_area.delete("1.0", tk.END)
+
     chapter_list.bind("<<ListboxSelect>>", on_chapter_select)
 
     # Editable chapter title
@@ -562,22 +549,26 @@ def display_chapters_for_review(chapters, book_title, root):
 
     def convert_current_chapter(index):
         chapter = chapters[index]
-        # Implement conversion logic for the current chapter
-        # popup for chapter number
+
+        # Prompt user for chapter number
         chapter_number = simpledialog.askinteger(
             "Chapter Number", "Enter the chapter number:", parent=review_window
         )
-        get_chapter_audio_for_chapter(chapter, chapter_number)
-        # Mark the chapter as converted (e.g., change background color in the list)
-        chapter_list.itemconfig(index, {"bg": "green"})
+
+        # Check if the user provided a chapter number
+        if chapter_number is not None:
+            # Proceed with audio conversion
+            get_chapter_audio_for_chapter(chapter, chapter_number)
+
+            # Mark the chapter as converted (e.g., change background color in the list)
+            chapter_list.itemconfig(index, {"bg": "green"})
+        else:
+            # Handle case where user cancels the input or enters an invalid number
+            print("Chapter conversion canceled or invalid chapter number entered.")
 
     def convert_all_chapters(chapters):
         # Implement conversion logic for all chapters
-        for i, chapter in enumerate(chapters):
-            # Convert each chapter
-            start_audio_conversion([chapter])
-            # Mark each chapter as converted in the list
-            chapter_list.itemconfig(i, {"bg": "green"})
+        start_audio_conversion(chapters)
 
     # Update chapter data when the text is modified
     def update_chapter_data():
@@ -591,17 +582,79 @@ def display_chapters_for_review(chapters, book_title, root):
     chapter_text_area.bind("<KeyRelease>", lambda event: update_chapter_data())
     chapter_title_entry.bind("<KeyRelease>", lambda event: update_chapter_data())
 
+    # Add and delete chapter buttons
+    add_chapter_button = tk.Button(
+        review_window, text="Add Chapter", command=add_new_chapter
+    )
+    add_chapter_button.grid(row=5, column=1, sticky="w", padx=5, pady=5)
+
+    delete_chapter_button = tk.Button(
+        review_window, text="Delete Chapter", command=delete_current_chapter
+    )
+    delete_chapter_button.grid(row=5, column=1, sticky="e", padx=5, pady=5)
+
     # Button to save chapters to JSON
     save_json_button = tk.Button(
         review_window,
         text="Save Chapters to JSON",
-        command=lambda: save_chapters_to_json(
-            book_title, chapters
-        ),  # Use a lambda function
+        command=lambda: save_chapters_to_json(book_title, chapters),
     )
-    save_json_button.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+    save_json_button.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
 
     update_chapter_display(current_chapter_index)
+
+
+def get_chapter_audio_for_chapter(chapter, chapter_number):
+    chapter_audio_data = []
+    title = chapter.get("chapter_title", "Untitled")
+    text = chapter.get("chapter_content", "")
+
+    print(f"Processing chapter: {title}")
+    print(f"Chapter number: {chapter_number}")
+
+    # Define a criterion to decide whether to split into subchapters
+    # For example, split if text length is more than a certain number of characters
+    should_split = len(text) > 4000
+
+    if should_split:
+        subchapters = split_into_subchapters(text)
+    else:
+        subchapters = [text]  # Treat the entire chapter as a single subchapter
+
+    for i, subchapter_content in enumerate(subchapters, start=1):
+        # Only include subchapter number in title if there are multiple subchapters
+        if len(subchapters) > 1:
+            combined_text = f"{title} Teil {i}. {subchapter_content}"
+            sanitized_title = sanitize_filename_from_title(title, chapter_number, i)
+        else:
+            combined_text = f"{title}. {subchapter_content}"
+            sanitized_title = sanitize_filename_from_title(
+                title, chapter_number, 1
+            )  # Use 1 as the default subchapter number
+
+        audio_path = text_to_speech(combined_text, output_file=sanitized_title + ".mp3")
+        audio_path = ""
+        chapter_audio = {"text": combined_text, "audio_path": audio_path}
+        chapter_audio_data.append(chapter_audio)
+
+    return chapter_audio_data
+
+
+import threading
+from threading import Lock
+
+
+def get_chapters_audio_for_chapters(chapters):
+    chapter_audios = []
+    chapter_number = 1
+    for chapter in chapters:
+        print(f"Starting audio processing for Chapter {chapter_number}")
+        chapter_audio_data = get_chapter_audio_for_chapter(chapter, chapter_number)
+        chapter_audios.extend(chapter_audio_data)
+        print(f"Completed audio processing for Chapter {chapter_number}")
+        chapter_number += 1
+
+    return chapter_audios
 
 
 def start_audio_conversion(chapters):
