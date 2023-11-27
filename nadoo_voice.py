@@ -19,6 +19,59 @@ import os
 from pathlib import Path
 
 
+def parse_config_matrix(config_str, total_chapters):
+    if not config_str:
+        return {str(chapter).zfill(2): True for chapter in range(1, total_chapters + 1)}
+
+    chapters_config = {}
+    for part in config_str.split(","):
+        if "-" in part:
+            start, end = part.split("-")
+            start = int(start)
+            end = total_chapters if end == "*" else int(end)
+            for chapter in range(start, end + 1):
+                chapters_config[str(chapter).zfill(2)] = True
+        elif "+" in part:
+            chapters = part.split("+")
+            for chapter in chapters:
+                chapters_config[chapter.zfill(2)] = True
+        else:
+            chapters_config[part.zfill(2)] = True
+    return chapters_config
+
+
+from pathlib import Path
+import os
+import re
+
+
+def generate_audio_file_path(book_title, chapter_title, voice, output_file):
+    """
+    Generates the file path for an audio file based on book title, chapter title, voice, and output file name.
+
+    Parameters:
+    - book_title (str): The title of the book.
+    - chapter_title (str): The title of the chapter.
+    - voice (str): The voice used for TTS.
+    - output_file (str): The name of the output audio file.
+
+    Returns:
+    - str: The full path for the audio file.
+    """
+    # Sanitize book and chapter titles to use in file paths
+    sanitized_book_title = re.sub(r'[<>:"/\\|?*]', "_", book_title)
+    sanitized_chapter_title = re.sub(r'[<>:"/\\|?*]', "_", chapter_title)
+
+    # Create the folder structure
+    base_folder = (
+        Path(__file__).parent / sanitized_book_title / voice / sanitized_chapter_title
+    )
+    os.makedirs(base_folder, exist_ok=True)
+
+    # Return the modified output file path
+    return f"{base_folder}/{output_file}"
+
+
 # Function to convert text to speech and save as an MP3 file
 def text_to_speech(
     input_text,
@@ -29,21 +82,10 @@ def text_to_speech(
     chapter_title="Chapter",
 ):
     try:
-        # Sanitize book and chapter titles to use in file paths
-        sanitized_book_title = re.sub(r'[<>:"/\\|?*]', "_", book_title)
-        sanitized_chapter_title = re.sub(r'[<>:"/\\|?*]', "_", chapter_title)
-
-        # Create the folder structure
-        base_folder = (
-            Path(__file__).parent
-            / sanitized_book_title
-            / voice
-            / sanitized_chapter_title
+        # Generate the full path for the audio file
+        modified_output_file = generate_audio_file_path(
+            book_title, chapter_title, voice, output_file
         )
-        os.makedirs(base_folder, exist_ok=True)
-
-        # Modify the output file name to include the voice name and use the full path
-        modified_output_file = f"{base_folder}/{output_file}"
 
         client = openai.OpenAI()
 
@@ -57,6 +99,214 @@ def text_to_speech(
         print(f"Audio file saved as {modified_output_file}")
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_title):
+    chapter_audio_data = []
+    title = chapter.get("chapter_title", "Untitled")
+    text = chapter.get("chapter_content", "")
+
+    print(f"Processing chapter: {title}")
+    print(f"Chapter number: {chapter_number}")
+
+    # Decide whether to split into subchapters
+    should_split = len(text) > 4000
+    subchapters = split_into_subchapters(text) if should_split else [text]
+
+    for i, subchapter_content in enumerate(subchapters, start=1):
+        combined_text = (
+            f"{title} Teil {i}. {subchapter_content}"
+            if len(subchapters) > 1
+            else f"{title}. {subchapter_content}"
+        )
+        sanitized_title = sanitize_filename_from_title(title, chapter_number, i)
+
+        audio_path = text_to_speech(
+            input_text=combined_text,
+            book_title=book_title,
+            model=model,
+            voice=voice,
+            output_file=sanitized_title + ".mp3",
+        )
+
+        chapter_audio = {"text": combined_text, "audio_path": audio_path}
+        chapter_audio_data.append(chapter_audio)
+
+    return chapter_audio_data
+
+
+def generate_default_voice_model_matrix(default_chapters, predefined_matrix=None):
+    """
+    Generates a voice-model matrix, using a predefined matrix if provided,
+    or creates a default matrix based on the default chapters.
+
+    Parameters:
+    - default_chapters (str): A string representing the default chapters to be processed.
+      Can be a range (e.g., "1-10"), a list of chapters (e.g., "1,3,5"), or "*" for all chapters.
+    - predefined_matrix (dict, optional): A predefined nested dictionary mapping voices to models
+      and their respective chapters. If provided, this matrix is used as is.
+
+    Returns:
+    - dict: A nested dictionary where each key is a voice, mapping to another dictionary
+      of models and their respective chapter specifications.
+
+    Example Usage:
+    - generate_default_voice_model_matrix("*") -> processes all chapters for each voice-model combination.
+    - generate_default_voice_model_matrix("1-10") -> processes chapters 1 to 10 for each voice-model combination.
+    - generate_default_voice_model_matrix("*", predefined_matrix=my_predefined_matrix)
+      -> uses the predefined matrix directly.
+    """
+    """ 
+    predefined_matrix = {
+    "alloy": {
+        "tts-1": "1-5",
+        "tts-1-hd": "6-10"
+    },
+    "echo": {
+        "tts-1-f": "11-15"
+    }
+    # ... other configurations ...
+    }
+    """
+    if predefined_matrix:
+        return predefined_matrix
+
+    # List of available voices
+    available_voices = ["alloy", "echo", "fable", "nova", "shimmer"]
+
+    # List of available models
+    available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+
+    # Creating the default matrix if no predefined matrix is provided
+    return {
+        voice: {model: default_chapters for model in available_models}
+        for voice in available_voices
+    }
+
+
+def check_audio_files_existence(chapters, book_title, voice_model_matrix):
+    """
+    Checks if the audio files for each chapter were created successfully.
+
+    Parameters:
+    - chapters (list): List of chapters.
+    - book_title (str): The title of the book.
+    - voice_model_matrix (dict): A matrix mapping voices to models and their respective chapters.
+    """
+    missing_files = []
+
+    for voice, models in voice_model_matrix.items():
+        for model, chapter_selection in models.items():
+            chapters_to_process = parse_chapter_selection(
+                chapter_selection, len(chapters)
+            )
+
+            for chapter_number in chapters_to_process:
+                # Generate the expected audio file path
+                chapter_title = f"Chapter_{chapter_number}"
+                expected_file_path = generate_audio_file_path(
+                    book_title, chapter_title, voice, f"{chapter_number}.mp3"
+                )
+
+                # Check if the file exists
+                if not os.path.exists(expected_file_path):
+                    missing_files.append(expected_file_path)
+
+    if missing_files:
+        print("Warning: The following audio files were not created successfully:")
+        for missing_file in missing_files:
+            print(missing_file)
+    else:
+        print("All audio files created successfully.")
+
+
+def get_chapters_audio_for_chapters(
+    chapters, book_title, voice_model_matrix=None, default_chapters="*"
+):
+    chapter_audios = []
+    if voice_model_matrix is None:
+        voice_model_matrix = generate_default_voice_model_matrix(default_chapters)
+
+    for voice, models in voice_model_matrix.items():
+        for model, chapter_selection in models.items():
+            chapters_to_process = parse_chapter_selection(
+                chapter_selection, len(chapters)
+            )
+
+            for chapter_number in chapters_to_process:
+                print(f"Processing {voice} {model} for Chapter {chapter_number}")
+                # Directly calling get_chapter_audio_for_chapter
+                chapter_audio_data = get_chapter_audio_for_chapter(
+                    chapters[chapter_number - 1],
+                    chapter_number,
+                    voice,
+                    model,
+                    book_title,
+                )
+                chapter_audios.extend(chapter_audio_data)
+
+    # Call the updated check_audio_files_existence function
+    check_audio_files_existence(chapters, book_title, voice_model_matrix)
+    return chapter_audios
+
+
+def get_chapters_audio_for_chapters_01(
+    chapters, book_title, voice_model_matrix="", default_chapters="*"
+):
+    chapter_audios = []
+    available_voices = ["alloy", "echo", "fable", "nova", "shimmer"]
+    available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+
+    # Example voice-model matrix
+    voice_model_matrix = {
+        "alloy_tts-1-hd": "02,08,12,14,22,25,36,39,42,57",
+        "echo_tts-1-hd": "02,08,12,14,22,25,36,38,39,42,57",
+        "fable_tts-1-hd": "07,13,38,39,42,57",
+        "nova_tts-1-hd": "14,24,38,41,48",
+        "shimmer_tts-1-hd": "07,13,14,24,37,41,44",
+    }
+
+    # Use default_chapters for all voice-model combinations if matrix is not provided
+    if not voice_model_matrix:
+        voice_model_matrix = {
+            f"{voice}_{model}": default_chapters
+            for voice in available_voices
+            for model in available_models
+        }
+
+    for voice_model_key, chapter_selection in voice_model_matrix.items():
+        voice, model = voice_model_key.split("_")
+        chapters_to_process = parse_chapter_selection(chapter_selection, len(chapters))
+
+        for chapter_number in chapters_to_process:
+            print(f"Processing {voice} {model} for Chapter {chapter_number}")
+            chapter_audio_data = get_chapter_audio_for_chapter(
+                chapters[chapter_number - 1], chapter_number, voice, model, book_title
+            )
+            chapter_audios.extend(chapter_audio_data)
+
+    return chapter_audios
+
+
+def parse_chapter_selection(chapter_selection, total_chapters):
+    """
+    Parse the chapter selection string to a list of chapter numbers.
+    """
+    chapter_numbers = []
+    for part in chapter_selection.split(","):
+        if "-" in part:
+            start, end = part.split("-")
+            end = int(end) if end != "*" else total_chapters
+            chapter_numbers.extend(range(int(start), end + 1))
+        elif part != "*":
+            chapter_numbers.append(int(part))
+        else:
+            return range(1, total_chapters + 1)
+    return chapter_numbers
+
+
+# Assuming get_chapter_audio_for_chapter is defined elsewhere
+# You will need to update it to accept voice and model as parameters
 
 
 def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):
@@ -409,6 +659,8 @@ def setup_main_gui(root):
 
 
 def load_book(root):
+    global global_book_title  # Reference the global variable
+
     books_folder = "books"
     os.makedirs(books_folder, exist_ok=True)  # Ensure the books folder exists
 
@@ -423,8 +675,13 @@ def load_book(root):
         # Load the selected book
         with open(book_file, "r", encoding="utf-8") as file:
             chapters = json.load(file)
-        book_title = os.path.splitext(os.path.basename(book_file))[0].replace("_", " ")
-        display_chapters_for_review(chapters, book_title, root)
+
+        # Update the global book title
+        global_book_title = os.path.splitext(os.path.basename(book_file))[0].replace(
+            "_", " "
+        )
+
+        display_chapters_for_review(chapters, global_book_title, root)
 
 
 def start_conversion_wrapper(mode_combobox, text_area, book_title_entry, root):
@@ -633,99 +890,13 @@ def display_chapters_for_review(chapters, book_title, root):
     update_chapter_display(current_chapter_index)
 
 
-def get_chapter_audio_for_chapter(chapter, chapter_number):
-    chapter_audio_data = []
-    title = chapter.get("chapter_title", "Untitled")
-    text = chapter.get("chapter_content", "")
-
-    print(f"Processing chapter: {title}")
-    print(f"Chapter number: {chapter_number}")
-
-    # Define a criterion to decide whether to split into subchapters
-    # For example, split if text length is more than a certain number of characters
-    should_split = len(text) > 4000
-
-    if should_split:
-        subchapters = split_into_subchapters(text)
-    else:
-        subchapters = [text]  # Treat the entire chapter as a single subchapter
-
-    for i, subchapter_content in enumerate(subchapters, start=1):
-        # Only include subchapter number in title if there are multiple subchapters
-        if len(subchapters) > 1:
-            combined_text = f"{title} Teil {i}. {subchapter_content}"
-            sanitized_title = sanitize_filename_from_title(title, chapter_number, i)
-        else:
-            combined_text = f"{title}. {subchapter_content}"
-            sanitized_title = sanitize_filename_from_title(
-                title, chapter_number, 1
-            )  # Use 1 as the default subchapter number
-
-        # I want to make a list of options for the voice
-        # I just want to create the audiobook with all available voices
-        # Here is the list: alloy, echo, fable, onyx, nova, and shimmer
-        # I already have done onyx
-        # Voices
-        voices = [
-            "alloy",
-            "echo",
-            "fable",
-            "nova",
-            "shimmer",
-        ]  # TODO: #6 add an automatic crawler that checks the openai website for new voices and adds them to the list
-
-        # Put the voices you want to use here in the list. Separate them with a comma. Example: voices=["alloy", "echo", "fable", "nova", "shimmer"]
-        voices = ["onyx"]
-
-        # here is missing the vioces for the other models
-        # I want to make a list of options for the model
-        # I just want to create the audiobook with all available models
-        # Here is the list: tts-1, tts-1-f, tts-1-m, tts-1-hd, and tts-1-hd-f
-        # I already have done tts-1-hd
-        # Models
-        # models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
-        model = "tts-1-hd"  # I just want to use the best model
-        book_title = "Das Nadoo Manifest"  # I just want to use the same book title: TODO: #5 make this dynamic so multiple books can be processed at once
-
-        for voice in voices:
-            audio_path = text_to_speech(
-                input_text=combined_text,
-                book_title=book_title,
-                model=model,
-                voice=voice,
-                output_file=sanitized_title + ".mp3",
-            )
-            audio_path = ""
-            chapter_audio = {"text": combined_text, "audio_path": audio_path}
-            chapter_audio_data.append(chapter_audio)
-
-    return chapter_audio_data
-
-
-import threading
-from threading import Lock
-
-
-def get_chapters_audio_for_chapters(chapters):
-    chapter_audios = []
-    chapter_number = 1
-    for chapter in chapters:
-        print(f"Starting audio processing for Chapter {chapter_number}")
-        chapter_audio_data = get_chapter_audio_for_chapter(chapter, chapter_number)
-        chapter_audios.extend(chapter_audio_data)
-        print(f"Completed audio processing for Chapter {chapter_number}")
-        chapter_number += 1
-
-    return chapter_audios
-
-
 def start_audio_conversion(chapters):
     """
     Starts the audio conversion process for the reviewed chapters.
 
     :param chapters: List of reviewed chapters.
     """
-    get_chapters_audio_for_chapters(chapters)
+    get_chapters_audio_for_chapters(chapters, global_book_title)
 
 
 def ask_for_api_key(root):
