@@ -11,13 +11,39 @@ import time
 import tkinter.filedialog as filedialog
 
 
+import os
+from pathlib import Path
+
+# Function to convert text to speech and save as an MP3 file
+import os
+from pathlib import Path
+
+
 # Function to convert text to speech and save as an MP3 file
 def text_to_speech(
-    input_text, model="tts-1-hd", voice="onyx", output_file="speech.mp3"
+    input_text,
+    model="tts-1-hd",
+    voice="onyx",
+    output_file="speech.mp3",
+    book_title="Untitled",
+    chapter_title="Chapter",
 ):
     try:
-        # Define the path for the output file
-        speech_file_path = Path(__file__).parent / output_file
+        # Sanitize book and chapter titles to use in file paths
+        sanitized_book_title = re.sub(r'[<>:"/\\|?*]', "_", book_title)
+        sanitized_chapter_title = re.sub(r'[<>:"/\\|?*]', "_", chapter_title)
+
+        # Create the folder structure
+        base_folder = (
+            Path(__file__).parent
+            / sanitized_book_title
+            / voice
+            / sanitized_chapter_title
+        )
+        os.makedirs(base_folder, exist_ok=True)
+
+        # Modify the output file name to include the voice name and use the full path
+        modified_output_file = f"{base_folder}/{output_file}"
 
         client = openai.OpenAI()
 
@@ -27,8 +53,8 @@ def text_to_speech(
         )
 
         # Stream the response to the file
-        response.stream_to_file(speech_file_path)
-        print(f"Audio file saved as {speech_file_path}")
+        response.stream_to_file(Path(modified_output_file))
+        print(f"Audio file saved as {modified_output_file}")
     except Exception as e:
         print(f"An error occurred: {e}")
 
@@ -287,9 +313,12 @@ def sanitize_filename(filename):
     )  # Replace invalid characters with underscore
 
 
-def sanitize_filename_from_title(title, chapter_number, subchapter_number):
+def sanitize_filename_from_title(title, chapter_number, subchapter_number=1):
     sanitized_title = re.sub(r'[<>:"/\\|?*]', "_", title)
-    return f"{chapter_number:02d}_{sanitized_title}_{subchapter_number:02d}"
+    filename = f"{chapter_number:02d}_{sanitized_title}"
+    if subchapter_number > 1:
+        filename += f"_{subchapter_number:02d}"
+    return filename
 
 
 import tkinter as tk
@@ -632,10 +661,43 @@ def get_chapter_audio_for_chapter(chapter, chapter_number):
                 title, chapter_number, 1
             )  # Use 1 as the default subchapter number
 
-        audio_path = text_to_speech(combined_text, output_file=sanitized_title + ".mp3")
-        audio_path = ""
-        chapter_audio = {"text": combined_text, "audio_path": audio_path}
-        chapter_audio_data.append(chapter_audio)
+        # I want to make a list of options for the voice
+        # I just want to create the audiobook with all available voices
+        # Here is the list: alloy, echo, fable, onyx, nova, and shimmer
+        # I already have done onyx
+        # Voices
+        voices = [
+            "alloy",
+            "echo",
+            "fable",
+            "nova",
+            "shimmer",
+        ]  # TODO: #6 add an automatic crawler that checks the openai website for new voices and adds them to the list
+
+        # Put the voices you want to use here in the list. Separate them with a comma. Example: voices=["alloy", "echo", "fable", "nova", "shimmer"]
+        voices = ["onyx"]
+
+        # here is missing the vioces for the other models
+        # I want to make a list of options for the model
+        # I just want to create the audiobook with all available models
+        # Here is the list: tts-1, tts-1-f, tts-1-m, tts-1-hd, and tts-1-hd-f
+        # I already have done tts-1-hd
+        # Models
+        # models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+        model = "tts-1-hd"  # I just want to use the best model
+        book_title = "Das Nadoo Manifest"  # I just want to use the same book title: TODO: #5 make this dynamic so multiple books can be processed at once
+
+        for voice in voices:
+            audio_path = text_to_speech(
+                input_text=combined_text,
+                book_title=book_title,
+                model=model,
+                voice=voice,
+                output_file=sanitized_title + ".mp3",
+            )
+            audio_path = ""
+            chapter_audio = {"text": combined_text, "audio_path": audio_path}
+            chapter_audio_data.append(chapter_audio)
 
     return chapter_audio_data
 
