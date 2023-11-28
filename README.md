@@ -26,6 +26,8 @@ cd NADOO-Voice
 4. Press 'Convert' to start the text-to-speech process.
 5. Access and manage your audio files directly within the application.
 
+   
+![NADOO_VOICE_UPDATE_LOGO_00_01_01](https://github.com/NADOOITChristophBa/NADOO-Voice/assets/106314951/3b4ff888-57ab-48ec-ab17-9eec386c1f23)
 ## Update 0.1.1 Announcement
 
 We're excited to announce the release of NADOO Voice version 0.1.1! This update brings several key enhancements and sets the foundation for some much-anticipated features in the future.
