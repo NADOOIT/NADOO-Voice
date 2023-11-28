@@ -589,6 +589,63 @@ def create_gui():
     root.mainloop()
 
 
+def clean_text(filedata, strings_to_remove):
+    """
+    General cleaning of the text.
+
+    This function can be expanded with more specific cleaning requirements, such as removing
+    repeating words or specific non-book related text. Additional logic or regex patterns can be
+    implemented as needed.
+
+    Args:
+    filedata (str): The text to be cleaned.
+    strings_to_remove (list of str): A list of strings to remove from the text.
+
+    Returns:
+    str: The cleaned text.
+    """
+    filedata = remove_specific_strings(filedata, strings_to_remove)
+    # Add more cleaning logic here if needed
+    return filedata
+
+
+def remove_specific_strings(text, strings_to_remove):
+    """
+    Remove specific strings from the text.
+
+    This function iterates over a list of strings and removes each one from the text. This is useful
+    for removing specific words or phrases that are known and defined in advance.
+
+    Args:
+    text (str): The original text from which strings will be removed.
+    strings_to_remove (list of str): A list of strings that should be removed from the text.
+
+    Returns:
+    str: The text with specified strings removed.
+    """
+    for string in strings_to_remove:
+        text = text.replace(string, "")
+    return text
+
+
+def remove_page_numbers(text):
+    """
+    Remove page numbers from the text.
+
+    This function uses a regular expression to identify and remove patterns that match page numbers.
+    The pattern '- Seite X von 471 -' is targeted, where X can be any number. This pattern is based on
+    the example provided and can be modified to fit different page number formats.
+
+    Args:
+    text (str): The text from which page numbers will be removed.
+
+    Returns:
+    str: The text with page numbers removed.
+    """
+    pattern = r"- Seite \d+ von 471 -"
+    return re.sub(pattern, "", text)
+
+
 def setup_main_gui(root):
     """
     Sets up the main GUI components including mode selection and text input area.
