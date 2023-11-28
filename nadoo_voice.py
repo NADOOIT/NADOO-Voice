@@ -671,6 +671,20 @@ def setup_main_gui(root):
         if mode == "Book":
             book_title_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
             book_title_entry.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
+        elif mode == "Clean":
+            with open('BGB.txt', 'r') as file:
+            filedata = file.read()
+
+            # List of specific strings to remove
+            strings_to_remove = ['unwanted phrase 1', 'unwanted phrase 2', 'etc']
+
+            # Clean the text
+            filedata = remove_page_numbers(filedata)
+            filedata = clean_text(filedata, strings_to_remove)
+
+            with open('BGB_clean.txt', 'w') as file:
+                file.write(filedata) 
+
         else:
             book_title_label.grid_remove()
             book_title_entry.grid_remove()
