@@ -45,7 +45,7 @@ import os
 import re
 
 
-def generate_audio_file_path(book_title, chapter_title, voice, output_file):
+def get_audio_file_path_for_chapter_info(book_title, chapter_title, voice, output_file):
     """
     Generates the file path for an audio file based on book title, chapter title, voice, and output file name.
 
@@ -81,24 +81,43 @@ def text_to_speech(
     book_title="Untitled",
     chapter_title="Chapter",
 ):
-    try:
-        # Generate the full path for the audio file
-        modified_output_file = generate_audio_file_path(
-            book_title, chapter_title, voice, output_file
-        )
+    retry_count = 0
+    retry_delay = 10  # Initial delay in seconds
 
-        client = openai.OpenAI()
+    while True:  # Infinite loop, will break on success or non-rate-limit error
+        try:
+            # Generate the full path for the audio file
+            modified_output_file = get_audio_file_path_for_chapter_info(
+                book_title, chapter_title, voice, output_file
+            )
 
-        # Create the spoken audio from the input text
-        response = client.audio.speech.create(
-            model=model, voice=voice, input=input_text
-        )
+            client = openai.OpenAI()
 
-        # Stream the response to the file
-        response.stream_to_file(Path(modified_output_file))
-        print(f"Audio file saved as {modified_output_file}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+            # Create the spoken audio from the input text
+            response = client.audio.speech.create(
+                model=model, voice=voice, input=input_text
+            )
+
+            # Stream the response to the file
+            response.stream_to_file(Path(modified_output_file))
+            print(f"Audio file saved as {modified_output_file}")
+            break  # Break the loop if successful
+
+        except Exception as e:
+            error_message = str(e)
+            if "rate_limit_exceeded" in error_message:
+                print(f"Rate limit reached, retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay = min(
+                    retry_delay * 2, 1200
+                )  # Double the delay each time, max 20 minutes
+                retry_count += 1
+            else:
+                print(f"An error occurred: {error_message}")
+                break
+
+    if retry_count > 0:
+        print(f"Retried {retry_count} times before success.")
 
 
 def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_title):
@@ -135,7 +154,7 @@ def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_ti
     return chapter_audio_data
 
 
-def generate_default_voice_model_matrix(default_chapters, predefined_matrix=None):
+def get_default_voice_model_matrix(default_chapters, predefined_matrix=None):
     """
     Generates a voice-model matrix, using a predefined matrix if provided,
     or creates a default matrix based on the default chapters.
@@ -151,9 +170,9 @@ def generate_default_voice_model_matrix(default_chapters, predefined_matrix=None
       of models and their respective chapter specifications.
 
     Example Usage:
-    - generate_default_voice_model_matrix("*") -> processes all chapters for each voice-model combination.
-    - generate_default_voice_model_matrix("1-10") -> processes chapters 1 to 10 for each voice-model combination.
-    - generate_default_voice_model_matrix("*", predefined_matrix=my_predefined_matrix)
+    - get_default_voice_model_matrix("*") -> processes all chapters for each voice-model combination.
+    - get_default_voice_model_matrix("1-10") -> processes chapters 1 to 10 for each voice-model combination.
+    - get_default_voice_model_matrix("*", predefined_matrix=my_predefined_matrix)
       -> uses the predefined matrix directly.
     """
     """ 
@@ -172,10 +191,11 @@ def generate_default_voice_model_matrix(default_chapters, predefined_matrix=None
         return predefined_matrix
 
     # List of available voices
-    available_voices = ["alloy", "echo", "fable", "nova", "shimmer"]
+    available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
 
     # List of available models
-    available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+    # available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+    available_models = ["tts-1-hd"]
 
     # Creating the default matrix if no predefined matrix is provided
     return {
@@ -204,7 +224,7 @@ def check_audio_files_existence(chapters, book_title, voice_model_matrix):
             for chapter_number in chapters_to_process:
                 # Generate the expected audio file path
                 chapter_title = f"Chapter_{chapter_number}"
-                expected_file_path = generate_audio_file_path(
+                expected_file_path = get_audio_file_path_for_chapter_info(
                     book_title, chapter_title, voice, f"{chapter_number}.mp3"
                 )
 
@@ -225,7 +245,7 @@ def get_chapters_audio_for_chapters(
 ):
     chapter_audios = []
     if voice_model_matrix is None:
-        voice_model_matrix = generate_default_voice_model_matrix(default_chapters)
+        voice_model_matrix = get_default_voice_model_matrix(default_chapters)
 
     for voice, models in voice_model_matrix.items():
         for model, chapter_selection in models.items():
@@ -604,6 +624,9 @@ def clean_text(filedata, strings_to_remove):
     Returns:
     str: The cleaned text.
     """
+
+    filedata = remove_page_numbers(filedata)
+
     filedata = remove_specific_strings(filedata, strings_to_remove)
     # Add more cleaning logic here if needed
     return filedata
@@ -646,6 +669,147 @@ def remove_page_numbers(text):
     return re.sub(pattern, "", text)
 
 
+def flatten_bgb_structure(bgb_structure):
+    chapters = []
+    for book in bgb_structure:
+        book_title = book["title"]
+        for section in book["sections"]:
+            section_title = section["title"]
+            for title in section["titles"]:
+                title_title = title["title"]
+                for paragraph in title["paragraphs"]:
+                    paragraph_title = paragraph["title"]
+                    paragraph_content = paragraph["content"]
+                    chapter_title = (
+                        f"{book_title}_{section_title}_{title_title}_{paragraph_title}"
+                    )
+                    chapters.append(
+                        {
+                            "chapter_title": chapter_title,
+                            "chapter_content": paragraph_content,
+                        }
+                    )
+    return chapters
+
+
+def split_bgb_text(text):
+    # Reguläre Ausdrücke für die verschiedenen Komponenten
+    book_regex = r"\n(Buch \d+[\s\S]*?)(?=\nBuch \d+|$)"
+    section_regex = r"\n(Abschnitt \d+[\s\S]*?)(?=\nAbschnitt \d+|$)"
+    title_regex = r"\n(Titel|Untertitel) \d+[\s\S]*?(?=(Titel|Untertitel) \d+|$)"
+    paragraph_regex = r"\n§\s\d+\s[^§]*"
+
+    bgb_structure = []
+
+    # Alle Bücher finden
+    books = re.findall(book_regex, text, re.MULTILINE)
+    for book_content in books:
+        book_split = book_content.strip().split("\n", 1)
+        book_title = book_split[0] if len(book_split) > 1 else "Buch ohne Titel"
+        book_content = book_split[1] if len(book_split) > 1 else ""
+
+        book_dict = {"title": book_title, "sections": []}
+        sections = re.findall(section_regex, book_content, re.MULTILINE)
+        for section_content in sections:
+            section_split = section_content.strip().split("\n", 1)
+            section_title = (
+                section_split[0] if len(section_split) > 1 else "Abschnitt ohne Titel"
+            )
+            section_content = section_split[1] if len(section_split) > 1 else ""
+
+            section_dict = {"title": section_title, "titles": []}
+            titles = re.findall(title_regex, section_content, re.MULTILINE)
+            for title_content in titles:
+                title_split = title_content.strip().split("\n", 1)
+                title_title = (
+                    title_split[0] if len(title_split) > 1 else "Titel ohne Titel"
+                )
+                title_content = title_split[1] if len(title_split) > 1 else ""
+
+                title_dict = {"title": title_title, "paragraphs": []}
+                paragraphs = re.findall(paragraph_regex, title_content, re.MULTILINE)
+                for paragraph_content in paragraphs:
+                    paragraph_split = paragraph_content.strip().split("\n", 1)
+                    paragraph_title = (
+                        paragraph_split[0]
+                        if len(paragraph_split) > 1
+                        else "Paragraph ohne Titel"
+                    )
+                    paragraph_content = (
+                        paragraph_split[1] if len(paragraph_split) > 1 else ""
+                    )
+
+                    paragraph_dict = {
+                        "title": paragraph_title,
+                        "content": paragraph_content,
+                    }
+                    title_dict["paragraphs"].append(paragraph_dict)
+
+                section_dict["titles"].append(title_dict)
+
+            book_dict["sections"].append(section_dict)
+
+        bgb_structure.append(book_dict)
+
+    return bgb_structure
+
+
+def extract_chapters_from_text(text):
+    chapters = []
+    lines = text.split("\n")
+    chapter_counter = 1
+    current_title = ""
+    current_content = []
+
+    for line in lines:
+        # Check for Buch, Abschnitt, Titel, and start a new chapter
+        if re.match(r"(Buch \d+|Abschnitt \d+|Titel \d+)", line):
+            # Save previous chapter if it exists
+            if current_title:
+                chapters.append(
+                    {
+                        "unique_id": f"Chapter{chapter_counter}",
+                        "chapter_title": current_title,
+                        "chapter_content": " ".join(current_content).strip(),
+                    }
+                )
+                chapter_counter += 1
+
+            current_title = line.strip()
+            current_content = []
+
+        # Check for '§' and start a new chapter
+        elif re.match(r"§ \d+", line):
+            # Save previous chapter if it exists
+            if current_title:
+                chapters.append(
+                    {
+                        "unique_id": f"Chapter{chapter_counter}",
+                        "chapter_title": current_title,
+                        "chapter_content": " ".join(current_content).strip(),
+                    }
+                )
+                chapter_counter += 1
+
+            current_title = line.strip()
+            current_content = []
+
+        else:
+            current_content.append(line.strip())
+
+    # Add the last chapter
+    if current_title:
+        chapters.append(
+            {
+                "unique_id": f"Chapter{chapter_counter}",
+                "chapter_title": current_title,
+                "chapter_content": " ".join(current_content).strip(),
+            }
+        )
+
+    return chapters
+
+
 def setup_main_gui(root):
     """
     Sets up the main GUI components including mode selection and text input area.
@@ -658,7 +822,7 @@ def setup_main_gui(root):
     mode_label = tk.Label(root, text="Select Mode:")
     mode_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
-    mode_combobox = ttk.Combobox(root, values=["Normal", "Book"])
+    mode_combobox = ttk.Combobox(root, values=["Normal", "Book", "Clean"])
     mode_combobox.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
 
     # Book title entry (initially hidden)
@@ -672,18 +836,42 @@ def setup_main_gui(root):
             book_title_label.grid(row=1, column=0, sticky="w", padx=10, pady=5)
             book_title_entry.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
         elif mode == "Clean":
-            with open('BGB.txt', 'r') as file:
-            filedata = file.read()
+            with open("BGB.txt", "r", encoding="utf-8") as file:
+                filedata = file.read()
 
-            # List of specific strings to remove
-            strings_to_remove = ['unwanted phrase 1', 'unwanted phrase 2', 'etc']
+                # List of specific strings to remove
+                strings_to_remove = [
+                    "Ein Service des Bundesministeriums der Justiz sowie des Bundesamts für Justiz ‒ www.gesetze-im-internet.de",
+                    # Add more unwanted phrases as needed
+                ]
 
-            # Clean the text
-            filedata = remove_page_numbers(filedata)
-            filedata = clean_text(filedata, strings_to_remove)
+                filedata = clean_text(filedata, strings_to_remove)
 
-            with open('BGB_clean.txt', 'w') as file:
-                file.write(filedata) 
+                # bgb_structure = split_bgb_text(filedata)
+
+                # chapters = flatten_bgb_structure(bgb_structure)
+                chapters = extract_chapters_from_text(filedata)
+
+                print(f"Found {len(chapters)} chapters.")
+
+                # first 10 chapters
+
+                # chapters = chapters[:10]
+                """                 
+                for chapter in chapters[:40]:
+                print(chapter) 
+                """
+
+                book_title = "BGB"
+                voice_model_matrix = get_default_voice_model_matrix("*")
+
+                # Process each chapter
+                chapter_audios = get_chapters_audio_for_chapters(
+                    chapters, book_title, voice_model_matrix
+                )
+
+                # Call the check_audio_files_existence function
+                check_audio_files_existence(chapters, book_title, voice_model_matrix)
 
         else:
             book_title_label.grid_remove()
