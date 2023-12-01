@@ -1,0 +1,424 @@
+[
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
+        "label": "openai",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "openai",
+        "description": "openai",
+        "detail": "openai",
+        "documentation": {}
+    },
+    {
+        "label": "tkinter",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "simpledialog",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "scrolledtext",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "ttk",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "scrolledtext",
+        "importPath": "tkinter",
+        "description": "tkinter",
+        "isExtraImport": true,
+        "detail": "tkinter",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "threading",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "threading",
+        "description": "threading",
+        "detail": "threading",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "tkinter.filedialog",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "tkinter.filedialog",
+        "description": "tkinter.filedialog",
+        "detail": "tkinter.filedialog",
+        "documentation": {}
+    },
+    {
+        "label": "initialize_database",
+        "kind": 2,
+        "importPath": "json_db",
+        "description": "json_db",
+        "peekOfCode": "def initialize_database(filename=\"state.json\"):\n    initial_data = {\n        \"chunks\": [],\n        \"chapters\": []\n    }\n    save_state_to_json(initial_data, filename)\ndef save_state_to_json(data, filename=\"state.json\"):\n    with open(filename, \"w\") as file:\n        json.dump(data, file, indent=4)\ndef load_state_from_json(filename=\"state.json\"):",
+        "detail": "json_db",
+        "documentation": {}
+    },
+    {
+        "label": "save_state_to_json",
+        "kind": 2,
+        "importPath": "json_db",
+        "description": "json_db",
+        "peekOfCode": "def save_state_to_json(data, filename=\"state.json\"):\n    with open(filename, \"w\") as file:\n        json.dump(data, file, indent=4)\ndef load_state_from_json(filename=\"state.json\"):\n    try:\n        with open(filename, \"r\") as file:\n            return json.load(file)\n    except FileNotFoundError:\n        # Initialize the database if the file doesn't exist\n        initialize_database(filename)",
+        "detail": "json_db",
+        "documentation": {}
+    },
+    {
+        "label": "load_state_from_json",
+        "kind": 2,
+        "importPath": "json_db",
+        "description": "json_db",
+        "peekOfCode": "def load_state_from_json(filename=\"state.json\"):\n    try:\n        with open(filename, \"r\") as file:\n            return json.load(file)\n    except FileNotFoundError:\n        # Initialize the database if the file doesn't exist\n        initialize_database(filename)\n        return {\n            \"chunks\": [],\n            \"chapters\": []",
+        "detail": "json_db",
+        "documentation": {}
+    },
+    {
+        "label": "saved_state",
+        "kind": 5,
+        "importPath": "json_db",
+        "description": "json_db",
+        "peekOfCode": "saved_state = load_state_from_json()\nif saved_state:\n    # Continue processing or handle as needed",
+        "detail": "json_db",
+        "documentation": {}
+    },
+    {
+        "label": "parse_config_matrix",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def parse_config_matrix(config_str, total_chapters):\n    if not config_str:\n        return {str(chapter).zfill(2): True for chapter in range(1, total_chapters + 1)}\n    chapters_config = {}\n    for part in config_str.split(\",\"):\n        if \"-\" in part:\n            start, end = part.split(\"-\")\n            start = int(start)\n            end = total_chapters if end == \"*\" else int(end)\n            for chapter in range(start, end + 1):",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "generate_audio_file_path",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def generate_audio_file_path(book_title, chapter_title, voice, output_file):\n    \"\"\"\n    Generates the file path for an audio file based on book title, chapter title, voice, and output file name.\n    Parameters:\n    - book_title (str): The title of the book.\n    - chapter_title (str): The title of the chapter.\n    - voice (str): The voice used for TTS.\n    - output_file (str): The name of the output audio file.\n    Returns:\n    - str: The full path for the audio file.",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "text_to_speech",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def text_to_speech(\n    input_text,\n    model=\"tts-1-hd\",\n    voice=\"onyx\",\n    output_file=\"speech.mp3\",\n    book_title=\"Untitled\",\n    chapter_title=\"Chapter\",\n):\n    try:\n        # Generate the full path for the audio file",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "get_chapter_audio_for_chapter",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_title):\n    chapter_audio_data = []\n    title = chapter.get(\"chapter_title\", \"Untitled\")\n    text = chapter.get(\"chapter_content\", \"\")\n    print(f\"Processing chapter: {title}\")\n    print(f\"Chapter number: {chapter_number}\")\n    # Decide whether to split into subchapters\n    should_split = len(text) > 4000\n    subchapters = split_into_subchapters(text) if should_split else [text]\n    for i, subchapter_content in enumerate(subchapters, start=1):",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "generate_default_voice_model_matrix",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def generate_default_voice_model_matrix(default_chapters, predefined_matrix=None):\n    \"\"\"\n    Generates a voice-model matrix, using a predefined matrix if provided,\n    or creates a default matrix based on the default chapters.\n    Parameters:\n    - default_chapters (str): A string representing the default chapters to be processed.\n      Can be a range (e.g., \"1-10\"), a list of chapters (e.g., \"1,3,5\"), or \"*\" for all chapters.\n    - predefined_matrix (dict, optional): A predefined nested dictionary mapping voices to models\n      and their respective chapters. If provided, this matrix is used as is.\n    Returns:",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "check_audio_files_existence",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def check_audio_files_existence(chapters, book_title, voice_model_matrix):\n    \"\"\"\n    Checks if the audio files for each chapter were created successfully.\n    Parameters:\n    - chapters (list): List of chapters.\n    - book_title (str): The title of the book.\n    - voice_model_matrix (dict): A matrix mapping voices to models and their respective chapters.\n    \"\"\"\n    missing_files = []\n    for voice, models in voice_model_matrix.items():",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "get_chapters_audio_for_chapters",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def get_chapters_audio_for_chapters(\n    chapters, book_title, voice_model_matrix=None, default_chapters=\"*\"\n):\n    chapter_audios = []\n    if voice_model_matrix is None:\n        voice_model_matrix = generate_default_voice_model_matrix(default_chapters)\n    for voice, models in voice_model_matrix.items():\n        for model, chapter_selection in models.items():\n            chapters_to_process = parse_chapter_selection(\n                chapter_selection, len(chapters)",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "get_chapters_audio_for_chapters_01",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def get_chapters_audio_for_chapters_01(\n    chapters, book_title, voice_model_matrix=\"\", default_chapters=\"*\"\n):\n    chapter_audios = []\n    available_voices = [\"alloy\", \"echo\", \"fable\", \"nova\", \"shimmer\"]\n    available_models = [\"tts-1\", \"tts-1-f\", \"tts-1-m\", \"tts-1-hd\", \"tts-1-hd-f\"]\n    # Example voice-model matrix\n    voice_model_matrix = {\n        \"alloy_tts-1-hd\": \"02,08,12,14,22,25,36,39,42,57\",\n        \"echo_tts-1-hd\": \"02,08,12,14,22,25,36,38,39,42,57\",",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "parse_chapter_selection",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def parse_chapter_selection(chapter_selection, total_chapters):\n    \"\"\"\n    Parse the chapter selection string to a list of chapter numbers.\n    \"\"\"\n    chapter_numbers = []\n    for part in chapter_selection.split(\",\"):\n        if \"-\" in part:\n            start, end = part.split(\"-\")\n            end = int(end) if end != \"*\" else total_chapters\n            chapter_numbers.extend(range(int(start), end + 1))",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "gpt_prompt_for_chapter_analysis",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):\n    \"\"\"\n    Analyzes a text chunk to identify chapters using GPT-4, with a fallback to GPT-3.5 if necessary.\n    Returns the last identified chapter if no new chapters are found, along with the text provided in the response.\n    :param chunk: Text chunk to be analyzed.\n    :param last_chapter_title: Title of the last identified chapter to continue from.\n    :return: A list of chapters found in the chunk, or the last chapter if no new chapters are found.\n    \"\"\"\n    from openai import (\n        BadRequestError,",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "split_into_chunks",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def split_into_chunks(text, chunk_size=400):\n    \"\"\"\n    Splits the book text into manageable chunks, trying to break at sentence endings.\n    'chunk_size' is in characters, adjust based on testing.\n    \"\"\"\n    chunks = []\n    chunk_count = 0\n    while text:\n        # Take the first 'chunk_size' characters from the book text\n        chunk = text[:chunk_size]",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "combine_chapter_responses",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def combine_chapter_responses(response_list):\n    \"\"\"\n    Combines the chapter information from multiple responses into one list.\n    If the same chapter appears in multiple responses, their content is combined.\n    Assumes each response in response_list is already a list of dictionaries.\n    \"\"\"\n    chapter_dict = {}\n    for response in response_list:\n        if isinstance(response, list):\n            for chapter in response:",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "word_list",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def word_list(text):\n    # Split text into words, considering punctuation as separate entities\n    return re.findall(r\"\\b\\w+\\b|\\S\", text.lower())\ndef get_chapters_for_text(text, book_title=\"Untitled\"):\n    print(\"Processing entire book...\")\n    chunks = split_into_chunks(text)\n    all_chapters = []\n    last_chapter_title = \"\"  # Initialize with an empty string\n    for chunk_index, chunk in enumerate(chunks):\n        print(f\"Processing chunk {chunk_index + 1}: {chunk}\")",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "get_chapters_for_text",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def get_chapters_for_text(text, book_title=\"Untitled\"):\n    print(\"Processing entire book...\")\n    chunks = split_into_chunks(text)\n    all_chapters = []\n    last_chapter_title = \"\"  # Initialize with an empty string\n    for chunk_index, chunk in enumerate(chunks):\n        print(f\"Processing chunk {chunk_index + 1}: {chunk}\")\n        response = gpt_prompt_for_chapter_analysis(chunk, last_chapter_title)\n        chapters = response.get(\"chapters\", [])\n        combined_chapter_words = []",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "split_into_subchapters",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def split_into_subchapters(chapter_content, max_length=4000):\n    \"\"\"\n    Splits a long chapter into subchapters based on a maximum character length.\n    Tries to split at paragraph ends for natural breaks.\n    \"\"\"\n    subchapters = []\n    current_subchapter = \"\"\n    for paragraph in chapter_content.split(\"\\n\"):\n        if len(current_subchapter) + len(paragraph) + 1 > max_length:\n            subchapters.append(current_subchapter)",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "sanitize_filename",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def sanitize_filename(filename):\n    \"\"\"Remove or replace invalid characters for file names.\"\"\"\n    invalid_chars = r'[<>:\"/\\\\|?*]'  # Regex pattern for invalid filename characters\n    return re.sub(\n        invalid_chars, \"_\", filename\n    )  # Replace invalid characters with underscore\ndef sanitize_filename_from_title(title, chapter_number, subchapter_number=1):\n    sanitized_title = re.sub(r'[<>:\"/\\\\|?*]', \"_\", title)\n    filename = f\"{chapter_number:02d}_{sanitized_title}\"\n    if subchapter_number > 1:",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "sanitize_filename_from_title",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def sanitize_filename_from_title(title, chapter_number, subchapter_number=1):\n    sanitized_title = re.sub(r'[<>:\"/\\\\|?*]', \"_\", title)\n    filename = f\"{chapter_number:02d}_{sanitized_title}\"\n    if subchapter_number > 1:\n        filename += f\"_{subchapter_number:02d}\"\n    return filename\nimport tkinter as tk\nfrom tkinter import ttk, scrolledtext\nimport threading\ndef create_gui():",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "create_gui",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def create_gui():\n    \"\"\"\n    Initializes and displays the main GUI window.\n    \"\"\"\n    root = tk.Tk()\n    root.title(\"Text to Speech Converter\")\n    # Setup the main GUI components\n    setup_main_gui(root)\n    root.mainloop()\ndef setup_main_gui(root):",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "setup_main_gui",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def setup_main_gui(root):\n    \"\"\"\n    Sets up the main GUI components including mode selection and text input area.\n    :param root: The root window of the tkinter application.\n    \"\"\"\n    root.grid_columnconfigure(0, weight=1)  # Make the main column expandable\n    # Mode selection\n    mode_label = tk.Label(root, text=\"Select Mode:\")\n    mode_label.grid(row=0, column=0, sticky=\"w\", padx=10, pady=5)\n    mode_combobox = ttk.Combobox(root, values=[\"Normal\", \"Book\",\"Clean\"])",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "load_book",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def load_book(root):\n    global global_book_title  # Reference the global variable\n    books_folder = \"books\"\n    os.makedirs(books_folder, exist_ok=True)  # Ensure the books folder exists\n    # Open a dialog to select a book file\n    book_file = filedialog.askopenfilename(\n        initialdir=books_folder,\n        title=\"Select Book\",\n        filetypes=((\"JSON Files\", \"*.json\"), (\"All Files\", \"*.*\")),\n    )",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "start_conversion_wrapper",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def start_conversion_wrapper(mode_combobox, text_area, book_title_entry, root):\n    mode = mode_combobox.get()\n    input_text = text_area.get(\"1.0\", tk.END).strip()\n    book_title = book_title_entry.get().strip() if mode == \"Book\" else \"\"\n    def process_text():\n        chapters = get_chapters_for_text(input_text, book_title)  # Pass book title\n        display_chapters_for_review(chapters, book_title, root)  # Pass book title\n    threading.Thread(target=process_text).start()\n    # Function to save chapters to a JSON file\n    import os",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "save_chapters_to_json",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def save_chapters_to_json(book_title, chapters):\n    try:\n        books_folder = \"books\"\n        os.makedirs(books_folder, exist_ok=True)\n        json_filename = (\n            f\"{book_title.replace(' ', '_')}.json\" if book_title else \"chapters.json\"\n        )\n        json_filepath = os.path.join(books_folder, json_filename)\n        with open(json_filepath, \"w\", encoding=\"utf-8\") as file:\n            json.dump(chapters, file, indent=4)",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "display_chapters_for_review",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def display_chapters_for_review(chapters, book_title, root):\n    review_window = tk.Toplevel(root)\n    review_window.title(\"Review Chapters\")\n    current_chapter_index = 0\n    # Layout configuration for resizing\n    review_window.grid_columnconfigure(1, weight=1)\n    review_window.grid_rowconfigure(1, weight=1)\n    # Chapter list for navigation (made larger)\n    chapter_list = tk.Listbox(review_window, width=40)  # Adjust width as needed\n    chapter_list.grid(row=0, column=0, rowspan=4, sticky=\"nsew\", padx=5, pady=5)",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "start_audio_conversion",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    get_chapters_audio_for_chapters(chapters, global_book_title)\ndef ask_for_api_key(root):\n    \"\"\"\n    Asks the user for the OpenAI API key and saves it to a .env file.\n    :param root: The root window of the tkinter application.",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "ask_for_api_key",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def ask_for_api_key(root):\n    \"\"\"\n    Asks the user for the OpenAI API key and saves it to a .env file.\n    :param root: The root window of the tkinter application.\n    :return: The entered API key.\n    \"\"\"\n    api_key = simpledialog.askstring(\n        \"API Key Required\", \"Enter your OpenAI API key:\", parent=root\n    )\n    # Save the key to a .env file",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "load_api_key",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def load_api_key():\n    \"\"\"\n    Loads the OpenAI API key from the environment or prompts the user to enter it.\n    :return: The OpenAI API key.\n    \"\"\"\n    load_dotenv()\n    api_key = os.getenv(\"OPENAI_API_KEY\")\n    if not api_key:\n        # Initialize a minimal Tkinter root window\n        root = tk.Tk()",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    }
+]
