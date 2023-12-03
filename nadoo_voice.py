@@ -240,13 +240,11 @@ def check_audio_files_existence(chapters, book_title, voice_model_matrix):
         print("All audio files created successfully.")
 
 
-def get_chapters_audio_for_chapters(
-    chapters, book_title, voice_model_matrix=None, default_chapters="*"
+def create_chapter_audio_for_voice_model_matrix(
+    voice_model_matrix,
+    chapters,
+    book_title,
 ):
-    chapter_audios = []
-    if voice_model_matrix is None:
-        voice_model_matrix = get_default_voice_model_matrix(default_chapters)
-
     for voice, models in voice_model_matrix.items():
         for model, chapter_selection in models.items():
             chapters_to_process = parse_chapter_selection(
@@ -263,28 +261,26 @@ def get_chapters_audio_for_chapters(
                     model,
                     book_title,
                 )
-                chapter_audios.extend(chapter_audio_data)
-
-    # Call the updated check_audio_files_existence function
-    check_audio_files_existence(chapters, book_title, voice_model_matrix)
-    return chapter_audios
 
 
-def get_chapters_audio_for_chapters_01(
+def get_chapters_audio_for_chapters_ON(
     chapters, book_title, voice_model_matrix="", default_chapters="*"
 ):
     chapter_audios = []
-    available_voices = ["alloy", "echo", "fable", "nova", "shimmer"]
-    available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+    available_voices = ["alloy", "echo", "fable", "nova", "shimmer","onyx"]
+    #available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
+    available_models = ["tts-1-hd"]
 
     # Example voice-model matrix
-    voice_model_matrix = {
-        "alloy_tts-1-hd": "02,08,12,14,22,25,36,39,42,57",
-        "echo_tts-1-hd": "02,08,12,14,22,25,36,38,39,42,57",
-        "fable_tts-1-hd": "07,13,38,39,42,57",
-        "nova_tts-1-hd": "14,24,38,41,48",
-        "shimmer_tts-1-hd": "07,13,14,24,37,41,44",
-    }
+    """    
+        voice_model_matrix = {
+            "alloy_tts-1-hd": "02,08,12,14,22,25,36,39,42,57",
+            "echo_tts-1-hd": "02,08,12,14,22,25,36,38,39,42,57",
+            "fable_tts-1-hd": "07,13,38,39,42,57",
+            "nova_tts-1-hd": "14,24,38,41,48",
+            "shimmer_tts-1-hd": "07,13,14,24,37,41,44",
+        }
+    """
 
     # Use default_chapters for all voice-model combinations if matrix is not provided
     if not voice_model_matrix:
@@ -294,18 +290,13 @@ def get_chapters_audio_for_chapters_01(
             for model in available_models
         }
 
-    for voice_model_key, chapter_selection in voice_model_matrix.items():
-        voice, model = voice_model_key.split("_")
-        chapters_to_process = parse_chapter_selection(chapter_selection, len(chapters))
-
-        for chapter_number in chapters_to_process:
-            print(f"Processing {voice} {model} for Chapter {chapter_number}")
-            chapter_audio_data = get_chapter_audio_for_chapter(
-                chapters[chapter_number - 1], chapter_number, voice, model, book_title
-            )
-            chapter_audios.extend(chapter_audio_data)
-
-    return chapter_audios
+        if voice_model_matrix is None:
+            voice_model_matrix = get_default_voice_model_matrix(default_chapters)
+        
+        # TODO:change the check and getting the default into a decorator for the function that makes sure to at least pass in the standard settings
+        create_chapter_audio_for_voice_model_matrix(
+            voice_model_matrix, chapters, book_title
+        )
 
 
 def parse_chapter_selection(chapter_selection, total_chapters):
@@ -866,7 +857,7 @@ def setup_main_gui(root):
                 voice_model_matrix = get_default_voice_model_matrix("*")
 
                 # Process each chapter
-                chapter_audios = get_chapters_audio_for_chapters(
+                chapter_audios = get_default_voice_model_matrix(
                     chapters, book_title, voice_model_matrix
                 )
 
@@ -1102,8 +1093,12 @@ def display_chapters_for_review(chapters, book_title, root):
 
         # Check if the user provided a chapter number
         if chapter_number is not None:
+            # add default matrix prodction
+
             # Proceed with audio conversion
-            get_chapter_audio_for_chapter(chapter, chapter_number)
+            get_chapter_audio_for_chapter(
+                chapter, chapter_number, voice, model, book_title
+            )
 
             # Mark the chapter as converted (e.g., change background color in the list)
             chapter_list.itemconfig(index, {"bg": "green"})
@@ -1155,9 +1150,26 @@ def start_audio_conversion(chapters):
 
     :param chapters: List of reviewed chapters.
     """
-    get_chapters_audio_for_chapters(chapters, global_book_title)
+    create_chapter_audio_for_voice_model_matrix(get_default_voice_model_matrix("*"), )
+    get_default_voice_model_matrix(chapters, global_book_title)
 
+def ask_for_Book_title(root):
+    """
+    Asks the user for the Book title and saves it to a .env file.
+    :param root: The root window of the tkinter application.
+    :return: The entered Book title.
+    """
+    
+    Book_title = simpledialog.askstring(
+        "Book title Required", "Enter your Book title:", parent=root
+    )
 
+    # Save the key to a .env file
+    with open(".env", "w") as file:
+        file.write(f"Book_title={Book_title}\n")
+
+    return Book_title    
+    
 def ask_for_api_key(root):
     """
     Asks the user for the OpenAI API key and saves it to a .env file.

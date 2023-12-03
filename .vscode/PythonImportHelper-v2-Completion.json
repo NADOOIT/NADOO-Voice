@@ -242,20 +242,20 @@
         "documentation": {}
     },
     {
-        "label": "get_chapters_audio_for_chapters",
+        "label": "create_chapter_audio_for_voice_model_matrix",
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def get_chapters_audio_for_chapters(\n    chapters, book_title, voice_model_matrix=None, default_chapters=\"*\"\n):\n    chapter_audios = []\n    if voice_model_matrix is None:\n        voice_model_matrix = get_default_voice_model_matrix(default_chapters)\n    for voice, models in voice_model_matrix.items():\n        for model, chapter_selection in models.items():\n            chapters_to_process = parse_chapter_selection(\n                chapter_selection, len(chapters)",
+        "peekOfCode": "def create_chapter_audio_for_voice_model_matrix(\n    voice_model_matrix,\n    chapters,\n    book_title,\n):\n    for voice, models in voice_model_matrix.items():\n        for model, chapter_selection in models.items():\n            chapters_to_process = parse_chapter_selection(\n                chapter_selection, len(chapters)\n            )",
         "detail": "nadoo_voice",
         "documentation": {}
     },
     {
-        "label": "get_chapters_audio_for_chapters_01",
+        "label": "get_chapters_audio_for_chapters_ON",
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def get_chapters_audio_for_chapters_01(\n    chapters, book_title, voice_model_matrix=\"\", default_chapters=\"*\"\n):\n    chapter_audios = []\n    available_voices = [\"alloy\", \"echo\", \"fable\", \"nova\", \"shimmer\"]\n    available_models = [\"tts-1\", \"tts-1-f\", \"tts-1-m\", \"tts-1-hd\", \"tts-1-hd-f\"]\n    # Example voice-model matrix\n    voice_model_matrix = {\n        \"alloy_tts-1-hd\": \"02,08,12,14,22,25,36,39,42,57\",\n        \"echo_tts-1-hd\": \"02,08,12,14,22,25,36,38,39,42,57\",",
+        "peekOfCode": "def get_chapters_audio_for_chapters_ON(\n    chapters, book_title, voice_model_matrix=\"\", default_chapters=\"*\"\n):\n    chapter_audios = []\n    available_voices = [\"alloy\", \"echo\", \"fable\", \"nova\", \"shimmer\",\"onyx\"]\n    #available_models = [\"tts-1\", \"tts-1-f\", \"tts-1-m\", \"tts-1-hd\", \"tts-1-hd-f\"]\n    available_models = [\"tts-1-hd\"]\n    # Example voice-model matrix\n    \"\"\"    \n        voice_model_matrix = {",
         "detail": "nadoo_voice",
         "documentation": {}
     },
@@ -453,7 +453,16 @@
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    get_chapters_audio_for_chapters(chapters, global_book_title)\ndef ask_for_api_key(root):\n    \"\"\"\n    Asks the user for the OpenAI API key and saves it to a .env file.\n    :param root: The root window of the tkinter application.",
+        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    create_chapter_audio_for_voice_model_matrix(get_default_voice_model_matrix(\"*\"), )\n    get_default_voice_model_matrix(chapters, global_book_title)\ndef ask_for_Book_title(root):\n    \"\"\"\n    Asks the user for the Book title and saves it to a .env file.",
+        "detail": "nadoo_voice",
+        "documentation": {}
+    },
+    {
+        "label": "ask_for_Book_title",
+        "kind": 2,
+        "importPath": "nadoo_voice",
+        "description": "nadoo_voice",
+        "peekOfCode": "def ask_for_Book_title(root):\n    \"\"\"\n    Asks the user for the Book title and saves it to a .env file.\n    :param root: The root window of the tkinter application.\n    :return: The entered Book title.\n    \"\"\"\n    Book_title = simpledialog.askstring(\n        \"Book title Required\", \"Enter your Book title:\", parent=root\n    )\n    # Save the key to a .env file",
         "detail": "nadoo_voice",
         "documentation": {}
     },
