@@ -863,7 +863,6 @@ def setup_main_gui(root):
 
                 # Call the check_audio_files_existence function
                 check_audio_files_existence(chapters, book_title, voice_model_matrix)
-
         else:
             book_title_label.grid_remove()
             book_title_entry.grid_remove()
