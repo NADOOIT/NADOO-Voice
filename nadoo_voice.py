@@ -191,7 +191,8 @@ def get_default_voice_model_matrix(default_chapters, predefined_matrix=None):
         return predefined_matrix
 
     # List of available voices
-    available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    #available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    available_voices = ["nova"]
 
     # List of available models
     # available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
@@ -261,42 +262,6 @@ def create_chapter_audio_for_voice_model_matrix(
                     model,
                     book_title,
                 )
-
-
-def get_chapters_audio_for_chapters_ON(
-    chapters, book_title, voice_model_matrix="", default_chapters="*"
-):
-    chapter_audios = []
-    available_voices = ["alloy", "echo", "fable", "nova", "shimmer","onyx"]
-    #available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
-    available_models = ["tts-1-hd"]
-
-    # Example voice-model matrix
-    """    
-        voice_model_matrix = {
-            "alloy_tts-1-hd": "02,08,12,14,22,25,36,39,42,57",
-            "echo_tts-1-hd": "02,08,12,14,22,25,36,38,39,42,57",
-            "fable_tts-1-hd": "07,13,38,39,42,57",
-            "nova_tts-1-hd": "14,24,38,41,48",
-            "shimmer_tts-1-hd": "07,13,14,24,37,41,44",
-        }
-    """
-
-    # Use default_chapters for all voice-model combinations if matrix is not provided
-    if not voice_model_matrix:
-        voice_model_matrix = {
-            f"{voice}_{model}": default_chapters
-            for voice in available_voices
-            for model in available_models
-        }
-
-        if voice_model_matrix is None:
-            voice_model_matrix = get_default_voice_model_matrix(default_chapters)
-        
-        # TODO:change the check and getting the default into a decorator for the function that makes sure to at least pass in the standard settings
-        create_chapter_audio_for_voice_model_matrix(
-            voice_model_matrix, chapters, book_title
-        )
 
 
 def parse_chapter_selection(chapter_selection, total_chapters):
@@ -1093,10 +1058,11 @@ def display_chapters_for_review(chapters, book_title, root):
         # Check if the user provided a chapter number
         if chapter_number is not None:
             # add default matrix prodction
-
-            # Proceed with audio conversion
-            get_chapter_audio_for_chapter(
-                chapter, chapter_number, voice, model, book_title
+            voice_model_matrix = get_default_voice_model_matrix("*")
+        
+            # Create the chapter audio
+            create_chapter_audio_for_voice_model_matrix(
+                voice_model_matrix, [chapter], book_title
             )
 
             # Mark the chapter as converted (e.g., change background color in the list)
@@ -1146,11 +1112,10 @@ def display_chapters_for_review(chapters, book_title, root):
 def start_audio_conversion(chapters):
     """
     Starts the audio conversion process for the reviewed chapters.
-
     :param chapters: List of reviewed chapters.
     """
-    create_chapter_audio_for_voice_model_matrix(get_default_voice_model_matrix("*"), )
-    get_default_voice_model_matrix(chapters, global_book_title)
+    create_chapter_audio_for_voice_model_matrix(get_default_voice_model_matrix("*"), chapters=chapters, book_title=global_book_title)
+
 
 def ask_for_Book_title(root):
     """
