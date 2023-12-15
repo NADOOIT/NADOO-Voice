@@ -152,6 +152,59 @@
         "documentation": {}
     },
     {
+        "label": "get_chapters_for_text",
+        "importPath": "chapters",
+        "description": "chapters",
+        "isExtraImport": true,
+        "detail": "chapters",
+        "documentation": {}
+    },
+    {
+        "label": "split_into_chunks",
+        "kind": 2,
+        "importPath": "chapters",
+        "description": "chapters",
+        "peekOfCode": "def split_into_chunks(text, chunk_size=400):\n    \"\"\"\n    Splits the book text into manageable chunks, trying to break at sentence endings.\n    'chunk_size' is in characters, adjust based on testing.\n    \"\"\"\n    chunks = []\n    chunk_count = 0\n    while text:\n        # Take the first 'chunk_size' characters from the book text\n        chunk = text[:chunk_size]",
+        "detail": "chapters",
+        "documentation": {}
+    },
+    {
+        "label": "gpt_prompt_for_chapter_analysis",
+        "kind": 2,
+        "importPath": "chapters",
+        "description": "chapters",
+        "peekOfCode": "def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):\n    \"\"\"\n    Analyzes a text chunk to identify chapters using GPT-4, with a fallback to GPT-3.5 if necessary.\n    Returns the last identified chapter if no new chapters are found, along with the text provided in the response.\n    :param chunk: Text chunk to be analyzed.\n    :param last_chapter_title: Title of the last identified chapter to continue from.\n    :return: A list of chapters found in the chunk, or the last chapter if no new chapters are found.\n    \"\"\"\n    from openai import (\n        BadRequestError,",
+        "detail": "chapters",
+        "documentation": {}
+    },
+    {
+        "label": "word_list",
+        "kind": 2,
+        "importPath": "chapters",
+        "description": "chapters",
+        "peekOfCode": "def word_list(text):\n    # Split text into words, considering punctuation as separate entities\n    return re.findall(r\"\\b\\w+\\b|\\S\", text.lower())\n# This function was used for the extraction of chapters for the BGB book only.\ndef get_chapters_for_bgb_text(text):\n    chapters = []\n    lines = text.split(\"\\n\")\n    chapter_counter = 1\n    current_title = \"\"\n    current_content = []",
+        "detail": "chapters",
+        "documentation": {}
+    },
+    {
+        "label": "get_chapters_for_bgb_text",
+        "kind": 2,
+        "importPath": "chapters",
+        "description": "chapters",
+        "peekOfCode": "def get_chapters_for_bgb_text(text):\n    chapters = []\n    lines = text.split(\"\\n\")\n    chapter_counter = 1\n    current_title = \"\"\n    current_content = []\n    for line in lines:\n        # Check for Buch, Abschnitt, Titel, and start a new chapter\n        if re.match(r\"(Buch \\d+|Abschnitt \\d+|Titel \\d+)\", line):\n            # Save previous chapter if it exists",
+        "detail": "chapters",
+        "documentation": {}
+    },
+    {
+        "label": "get_chapters_for_text",
+        "kind": 2,
+        "importPath": "chapters",
+        "description": "chapters",
+        "peekOfCode": "def get_chapters_for_text(text, book_title=\"Untitled\"):\n    print(\"Processing entire book...\")\n    chunks = split_into_chunks(text)\n    all_chapters = []\n    last_chapter_title = \"\"  # Initialize with an empty string\n    for chunk_index, chunk in enumerate(chunks):\n        print(f\"Processing chunk {chunk_index + 1}: {chunk}\")\n        response = gpt_prompt_for_chapter_analysis(chunk, last_chapter_title)\n        chapters = response.get(\"chapters\", [])\n        combined_chapter_words = []",
+        "detail": "chapters",
+        "documentation": {}
+    },
+    {
         "label": "initialize_database",
         "kind": 2,
         "importPath": "json_db",
@@ -210,7 +263,7 @@
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def text_to_speech(\n    input_text,\n    model=\"tts-1-hd\",\n    voice=\"onyx\",\n    output_file=\"speech.mp3\",\n    book_title=\"Untitled\",\n    chapter_title=\"Chapter\",\n):\n    retry_count = 0\n    retry_delay = 10  # Initial delay in seconds",
+        "peekOfCode": "def text_to_speech(\n    input_text,\n    audio_file_path,\n    model=\"tts-1-hd\",\n    voice=\"onyx\",\n):\n    retry_count = 0\n    retry_delay = 10  # Initial delay in seconds\n    while True:  # Infinite loop, will break on success or non-rate-limit error\n        try:",
         "detail": "nadoo_voice",
         "documentation": {}
     },
@@ -219,7 +272,7 @@
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_title):\n    chapter_audio_data = []\n    title = chapter.get(\"chapter_title\", \"Untitled\")\n    text = chapter.get(\"chapter_content\", \"\")\n    print(f\"Processing chapter: {title}\")\n    print(f\"Chapter number: {chapter_number}\")\n    # Decide whether to split into subchapters\n    should_split = len(text) > 4000\n    subchapters = split_into_subchapters(text) if should_split else [text]\n    for i, subchapter_content in enumerate(subchapters, start=1):",
+        "peekOfCode": "def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_title):\n    chapter_audio_data = []\n    chapter_title = chapter.get(\"chapter_title\", \"Untitled\")\n    text = chapter.get(\"chapter_content\", \"\")\n    print(f\"Processing chapter: {chapter_title}\")\n    print(f\"Chapter number: {chapter_number}\")\n    # Decide whether to split into subchapters\n    should_split = len(text) > 4000\n    subchapters = split_into_subchapters(text) if should_split else [text]\n    for i, subchapter_content in enumerate(subchapters, start=1):",
         "detail": "nadoo_voice",
         "documentation": {}
     },
@@ -251,15 +304,6 @@
         "documentation": {}
     },
     {
-        "label": "get_chapters_audio_for_chapters_ON",
-        "kind": 2,
-        "importPath": "nadoo_voice",
-        "description": "nadoo_voice",
-        "peekOfCode": "def get_chapters_audio_for_chapters_ON(\n    chapters, book_title, voice_model_matrix=\"\", default_chapters=\"*\"\n):\n    chapter_audios = []\n    available_voices = [\"alloy\", \"echo\", \"fable\", \"nova\", \"shimmer\",\"onyx\"]\n    #available_models = [\"tts-1\", \"tts-1-f\", \"tts-1-m\", \"tts-1-hd\", \"tts-1-hd-f\"]\n    available_models = [\"tts-1-hd\"]\n    # Example voice-model matrix\n    \"\"\"    \n        voice_model_matrix = {",
-        "detail": "nadoo_voice",
-        "documentation": {}
-    },
-    {
         "label": "parse_chapter_selection",
         "kind": 2,
         "importPath": "nadoo_voice",
@@ -269,47 +313,11 @@
         "documentation": {}
     },
     {
-        "label": "gpt_prompt_for_chapter_analysis",
-        "kind": 2,
-        "importPath": "nadoo_voice",
-        "description": "nadoo_voice",
-        "peekOfCode": "def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):\n    \"\"\"\n    Analyzes a text chunk to identify chapters using GPT-4, with a fallback to GPT-3.5 if necessary.\n    Returns the last identified chapter if no new chapters are found, along with the text provided in the response.\n    :param chunk: Text chunk to be analyzed.\n    :param last_chapter_title: Title of the last identified chapter to continue from.\n    :return: A list of chapters found in the chunk, or the last chapter if no new chapters are found.\n    \"\"\"\n    from openai import (\n        BadRequestError,",
-        "detail": "nadoo_voice",
-        "documentation": {}
-    },
-    {
-        "label": "split_into_chunks",
-        "kind": 2,
-        "importPath": "nadoo_voice",
-        "description": "nadoo_voice",
-        "peekOfCode": "def split_into_chunks(text, chunk_size=400):\n    \"\"\"\n    Splits the book text into manageable chunks, trying to break at sentence endings.\n    'chunk_size' is in characters, adjust based on testing.\n    \"\"\"\n    chunks = []\n    chunk_count = 0\n    while text:\n        # Take the first 'chunk_size' characters from the book text\n        chunk = text[:chunk_size]",
-        "detail": "nadoo_voice",
-        "documentation": {}
-    },
-    {
         "label": "combine_chapter_responses",
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
         "peekOfCode": "def combine_chapter_responses(response_list):\n    \"\"\"\n    Combines the chapter information from multiple responses into one list.\n    If the same chapter appears in multiple responses, their content is combined.\n    Assumes each response in response_list is already a list of dictionaries.\n    \"\"\"\n    chapter_dict = {}\n    for response in response_list:\n        if isinstance(response, list):\n            for chapter in response:",
-        "detail": "nadoo_voice",
-        "documentation": {}
-    },
-    {
-        "label": "word_list",
-        "kind": 2,
-        "importPath": "nadoo_voice",
-        "description": "nadoo_voice",
-        "peekOfCode": "def word_list(text):\n    # Split text into words, considering punctuation as separate entities\n    return re.findall(r\"\\b\\w+\\b|\\S\", text.lower())\ndef get_chapters_for_text(text, book_title=\"Untitled\"):\n    print(\"Processing entire book...\")\n    chunks = split_into_chunks(text)\n    all_chapters = []\n    last_chapter_title = \"\"  # Initialize with an empty string\n    for chunk_index, chunk in enumerate(chunks):\n        print(f\"Processing chunk {chunk_index + 1}: {chunk}\")",
-        "detail": "nadoo_voice",
-        "documentation": {}
-    },
-    {
-        "label": "get_chapters_for_text",
-        "kind": 2,
-        "importPath": "nadoo_voice",
-        "description": "nadoo_voice",
-        "peekOfCode": "def get_chapters_for_text(text, book_title=\"Untitled\"):\n    print(\"Processing entire book...\")\n    chunks = split_into_chunks(text)\n    all_chapters = []\n    last_chapter_title = \"\"  # Initialize with an empty string\n    for chunk_index, chunk in enumerate(chunks):\n        print(f\"Processing chunk {chunk_index + 1}: {chunk}\")\n        response = gpt_prompt_for_chapter_analysis(chunk, last_chapter_title)\n        chapters = response.get(\"chapters\", [])\n        combined_chapter_words = []",
         "detail": "nadoo_voice",
         "documentation": {}
     },
@@ -327,16 +335,16 @@
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def sanitize_filename(filename):\n    \"\"\"Remove or replace invalid characters for file names.\"\"\"\n    invalid_chars = r'[<>:\"/\\\\|?*]'  # Regex pattern for invalid filename characters\n    return re.sub(\n        invalid_chars, \"_\", filename\n    )  # Replace invalid characters with underscore\ndef sanitize_filename_from_title(title, chapter_number, subchapter_number=1):\n    sanitized_title = re.sub(r'[<>:\"/\\\\|?*]', \"_\", title)\n    filename = f\"{chapter_number:02d}_{sanitized_title}\"\n    if subchapter_number > 1:",
+        "peekOfCode": "def sanitize_filename(filename):\n    \"\"\"Remove or replace invalid characters for file names.\"\"\"\n    invalid_chars = r'[<>:\"/\\\\|?*]'  # Regex pattern for invalid filename characters\n    return re.sub(\n        invalid_chars, \"_\", filename\n    )  # Replace invalid characters with underscore\ndef get_sanitized_filename_for_chapter_title(\n    title, chapter_number, subchapter_number=1\n):\n    sanitized_title = re.sub(r'[<>:\"/\\\\|?*]', \"_\", title)",
         "detail": "nadoo_voice",
         "documentation": {}
     },
     {
-        "label": "sanitize_filename_from_title",
+        "label": "get_sanitized_filename_for_chapter_title",
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def sanitize_filename_from_title(title, chapter_number, subchapter_number=1):\n    sanitized_title = re.sub(r'[<>:\"/\\\\|?*]', \"_\", title)\n    filename = f\"{chapter_number:02d}_{sanitized_title}\"\n    if subchapter_number > 1:\n        filename += f\"_{subchapter_number:02d}\"\n    return filename\nimport tkinter as tk\nfrom tkinter import ttk, scrolledtext\nimport threading\ndef create_gui():",
+        "peekOfCode": "def get_sanitized_filename_for_chapter_title(\n    title, chapter_number, subchapter_number=1\n):\n    sanitized_title = re.sub(r'[<>:\"/\\\\|?*]', \"_\", title)\n    filename = f\"{chapter_number:02d}_{sanitized_title}\"\n    if subchapter_number > 1:\n        filename += f\"_{subchapter_number:02d}\"\n    return filename\nimport tkinter as tk\nfrom tkinter import ttk, scrolledtext",
         "detail": "nadoo_voice",
         "documentation": {}
     },
@@ -453,7 +461,7 @@
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    create_chapter_audio_for_voice_model_matrix(get_default_voice_model_matrix(\"*\"), )\n    get_default_voice_model_matrix(chapters, global_book_title)\ndef ask_for_Book_title(root):\n    \"\"\"\n    Asks the user for the Book title and saves it to a .env file.",
+        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    create_chapter_audio_for_voice_model_matrix(\n        get_default_voice_model_matrix(\"*\"),\n    )\n    get_default_voice_model_matrix(chapters, global_book_title)\ndef ask_for_Book_title(root):",
         "detail": "nadoo_voice",
         "documentation": {}
     },
