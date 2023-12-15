@@ -1,3 +1,9 @@
+import json
+import re
+
+import openai
+
+
 def split_into_chunks(text, chunk_size=400):
     """
     Splits the book text into manageable chunks, trying to break at sentence endings.

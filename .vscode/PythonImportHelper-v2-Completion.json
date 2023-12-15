@@ -9,6 +9,24 @@
         "documentation": {}
     },
     {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "openai",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "openai",
+        "description": "openai",
+        "detail": "openai",
+        "documentation": {}
+    },
+    {
         "label": "os",
         "kind": 6,
         "isExtraImport": true,
@@ -58,15 +76,6 @@
         "documentation": {}
     },
     {
-        "label": "openai",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "openai",
-        "description": "openai",
-        "detail": "openai",
-        "documentation": {}
-    },
-    {
         "label": "tkinter",
         "kind": 6,
         "isExtraImport": true,
@@ -113,15 +122,6 @@
         "description": "tkinter",
         "isExtraImport": true,
         "detail": "tkinter",
-        "documentation": {}
-    },
-    {
-        "label": "re",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "re",
-        "description": "re",
-        "detail": "re",
         "documentation": {}
     },
     {
