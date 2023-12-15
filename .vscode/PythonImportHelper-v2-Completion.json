@@ -461,7 +461,7 @@
         "kind": 2,
         "importPath": "nadoo_voice",
         "description": "nadoo_voice",
-        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    create_chapter_audio_for_voice_model_matrix(\n        get_default_voice_model_matrix(\"*\"),\n        chapters=chapters,\n        book_title=global_book_title,\n    )",
+        "peekOfCode": "def start_audio_conversion(chapters):\n    \"\"\"\n    Starts the audio conversion process for the reviewed chapters.\n    :param chapters: List of reviewed chapters.\n    \"\"\"\n    create_chapter_audio_for_voice_model_matrix(\n        get_default_voice_model_matrix(\"*\"),\n    )\n    get_default_voice_model_matrix(chapters, global_book_title)\ndef ask_for_Book_title(root):",
         "detail": "nadoo_voice",
         "documentation": {}
     },
