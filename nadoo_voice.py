@@ -197,7 +197,7 @@ def get_default_voice_model_matrix(default_chapters, predefined_matrix=None):
         return predefined_matrix
 
     # List of available voices
-    # available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    ## available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
     available_voices = ["nova"]
 
     # List of available models
@@ -937,9 +937,8 @@ def start_audio_conversion(chapters):
     """
     create_chapter_audio_for_voice_model_matrix(
         get_default_voice_model_matrix("*"),
-        chapters=chapters,
-        book_title=global_book_title,
     )
+    get_default_voice_model_matrix(chapters, global_book_title)
 
 
 def ask_for_Book_title(root):
