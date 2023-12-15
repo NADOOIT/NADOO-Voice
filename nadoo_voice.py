@@ -18,6 +18,8 @@ from pathlib import Path
 import os
 from pathlib import Path
 
+from chapters import get_chapters_for_text
+
 
 def parse_config_matrix(config_str, total_chapters):
     if not config_str:
@@ -75,22 +77,15 @@ def get_audio_file_path_for_chapter_info(book_title, chapter_title, voice, outpu
 # Function to convert text to speech and save as an MP3 file
 def text_to_speech(
     input_text,
+    audio_file_path,
     model="tts-1-hd",
     voice="onyx",
-    output_file="speech.mp3",
-    book_title="Untitled",
-    chapter_title="Chapter",
 ):
     retry_count = 0
     retry_delay = 10  # Initial delay in seconds
 
     while True:  # Infinite loop, will break on success or non-rate-limit error
         try:
-            # Generate the full path for the audio file
-            modified_output_file = get_audio_file_path_for_chapter_info(
-                book_title, chapter_title, voice, output_file
-            )
-
             client = openai.OpenAI()
 
             # Create the spoken audio from the input text
@@ -99,8 +94,8 @@ def text_to_speech(
             )
 
             # Stream the response to the file
-            response.stream_to_file(Path(modified_output_file))
-            print(f"Audio file saved as {modified_output_file}")
+            response.stream_to_file(Path(audio_file_path))
+            print(f"Audio file saved as {audio_file_path}")
             break  # Break the loop if successful
 
         except Exception as e:
@@ -122,10 +117,10 @@ def text_to_speech(
 
 def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_title):
     chapter_audio_data = []
-    title = chapter.get("chapter_title", "Untitled")
+    chapter_title = chapter.get("chapter_title", "Untitled")
     text = chapter.get("chapter_content", "")
 
-    print(f"Processing chapter: {title}")
+    print(f"Processing chapter: {chapter_title}")
     print(f"Chapter number: {chapter_number}")
 
     # Decide whether to split into subchapters
@@ -134,18 +129,29 @@ def get_chapter_audio_for_chapter(chapter, chapter_number, voice, model, book_ti
 
     for i, subchapter_content in enumerate(subchapters, start=1):
         combined_text = (
-            f"{title} Teil {i}. {subchapter_content}"
+            f"{chapter_title} Teil {i}. {subchapter_content}"
             if len(subchapters) > 1
-            else f"{title}. {subchapter_content}"
+            else f"{chapter_title}. {subchapter_content}"
         )
-        sanitized_title = sanitize_filename_from_title(title, chapter_number, i)
+        sanitized_chapter_title = get_sanitized_filename_for_chapter_title(
+            chapter_title, chapter_number, i
+        )
+
+        codec = "mp3"
+
+        audio_file_path = get_audio_file_path_for_chapter_info(
+            book_title,
+            sanitized_chapter_title,
+            voice,
+            sanitized_chapter_title + "." + codec,
+        )
 
         audio_path = text_to_speech(
             input_text=combined_text,
+            audio_file_path=audio_file_path,
             book_title=book_title,
             model=model,
             voice=voice,
-            output_file=sanitized_title + ".mp3",
         )
 
         chapter_audio = {"text": combined_text, "audio_path": audio_path}
@@ -191,7 +197,8 @@ def get_default_voice_model_matrix(default_chapters, predefined_matrix=None):
         return predefined_matrix
 
     # List of available voices
-    available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    # available_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    available_voices = ["nova"]
 
     # List of available models
     # available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
@@ -224,13 +231,13 @@ def check_audio_files_existence(chapters, book_title, voice_model_matrix):
             for chapter_number in chapters_to_process:
                 # Generate the expected audio file path
                 chapter_title = f"Chapter_{chapter_number}"
-                expected_file_path = get_audio_file_path_for_chapter_info(
+                audio_file_path = get_audio_file_path_for_chapter_info(
                     book_title, chapter_title, voice, f"{chapter_number}.mp3"
                 )
 
                 # Check if the file exists
-                if not os.path.exists(expected_file_path):
-                    missing_files.append(expected_file_path)
+                if not os.path.exists(audio_file_path):
+                    missing_files.append(audio_file_path)
 
     if missing_files:
         print("Warning: The following audio files were not created successfully:")
@@ -263,42 +270,6 @@ def create_chapter_audio_for_voice_model_matrix(
                 )
 
 
-def get_chapters_audio_for_chapters_ON(
-    chapters, book_title, voice_model_matrix="", default_chapters="*"
-):
-    chapter_audios = []
-    available_voices = ["alloy", "echo", "fable", "nova", "shimmer","onyx"]
-    #available_models = ["tts-1", "tts-1-f", "tts-1-m", "tts-1-hd", "tts-1-hd-f"]
-    available_models = ["tts-1-hd"]
-
-    # Example voice-model matrix
-    """    
-        voice_model_matrix = {
-            "alloy_tts-1-hd": "02,08,12,14,22,25,36,39,42,57",
-            "echo_tts-1-hd": "02,08,12,14,22,25,36,38,39,42,57",
-            "fable_tts-1-hd": "07,13,38,39,42,57",
-            "nova_tts-1-hd": "14,24,38,41,48",
-            "shimmer_tts-1-hd": "07,13,14,24,37,41,44",
-        }
-    """
-
-    # Use default_chapters for all voice-model combinations if matrix is not provided
-    if not voice_model_matrix:
-        voice_model_matrix = {
-            f"{voice}_{model}": default_chapters
-            for voice in available_voices
-            for model in available_models
-        }
-
-        if voice_model_matrix is None:
-            voice_model_matrix = get_default_voice_model_matrix(default_chapters)
-        
-        # TODO:change the check and getting the default into a decorator for the function that makes sure to at least pass in the standard settings
-        create_chapter_audio_for_voice_model_matrix(
-            voice_model_matrix, chapters, book_title
-        )
-
-
 def parse_chapter_selection(chapter_selection, total_chapters):
     """
     Parse the chapter selection string to a list of chapter numbers.
@@ -318,143 +289,6 @@ def parse_chapter_selection(chapter_selection, total_chapters):
 
 # Assuming get_chapter_audio_for_chapter is defined elsewhere
 # You will need to update it to accept voice and model as parameters
-
-
-def gpt_prompt_for_chapter_analysis(chunk, last_chapter_title):
-    """
-    Analyzes a text chunk to identify chapters using GPT-4, with a fallback to GPT-3.5 if necessary.
-    Returns the last identified chapter if no new chapters are found, along with the text provided in the response.
-
-    :param chunk: Text chunk to be analyzed.
-    :param last_chapter_title: Title of the last identified chapter to continue from.
-    :return: A list of chapters found in the chunk, or the last chapter if no new chapters are found.
-    """
-
-    from openai import (
-        BadRequestError,
-        AuthenticationError,
-        PermissionDeniedError,
-        NotFoundError,
-        RateLimitError,
-        InternalServerError,
-        APIConnectionError,
-        APITimeoutError,
-    )
-
-    # Example JSON structure showing potential multiple chapters
-    example_json = {
-        "chapters": [
-            {
-                "chapter_title": "Chapter 1",
-                "chapter_content": "Full found Content of Chapter 1...",
-            },
-            {
-                "chapter_title": "Chapter 2",
-                "chapter_content": "Full found Content of Chapter 2...",
-            },
-        ]
-    }
-
-    # Detailed prompt construction for GPT models
-    prompt = (
-        f"You are an helpfull AI assistant. You are helping to find the structure of a book inside a text."
-        f"You are given a chunk of text. This text needs to be analysed."
-        f"A chunk can contain a a chapter title but does not need to start with it."
-        f"If the text does not start with a new chapter title use this title ->'{last_chapter_title}'<- for the text until you find a new chapter. "
-        f"Chapter Titles usually are written in CAPITAL LETTERS and formed as a question."
-        f"They also usually take a whole line."
-        f"Be carful not to include any other text in the chapter title and also that in the text the chapter titles are somethimes mentioned. DO NOT include those mentions in the chapter title."
-        f"Examine the text for any new chapter, and return their titles and full content. It is absolutly crucial that you return the full content of the chapters."
-        f"No not change any of the text simply copy and past it."
-        f"Be carfull not to add any styling to the text like /n or /t"
-        f"Here is the text chunk for analysis: {chunk}."
-        f"Again If no new chapters are found, simply use this ->'{last_chapter_title}'<- for the rest of the found chapter content. "
-        f"Your response should be in a JSON format similar to this example: {json.dumps(example_json)}"
-        f"You can do this. Give this your best shot. Take time to think. "
-    )
-
-    client = openai.OpenAI()  # Ensure the OpenAI client is set up with an API key
-
-    attempts = 0
-    max_attempts = 2
-    models = ["gpt-4-1106-preview", "gpt-3.5-turbo-1106"]
-
-    while attempts < max_attempts + 1:
-        model = models[attempts % len(models)]
-        # print(f"Sending the following detailed prompt to {model}:")
-        # print(prompt)
-
-        response = client.chat.completions.create(
-            model=model,
-            response_format={"type": "json_object"},
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Please respond with a detailed analysis in JSON format.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-        )
-
-        response_content = response.choices[0].message.content
-        # print(f"Received response from {model}:")
-        # print(response_content)
-
-        try:
-            response_data = json.loads(response_content)
-
-            return response_data  # Correct response with new chapters
-
-        except BadRequestError:
-            print("Bad request to OpenAI. Please check the request format.")
-        except AuthenticationError:
-            print("Authentication failed. Please check your OpenAI API key.")
-        except PermissionDeniedError:
-            print("Permission denied. Please check your access rights.")
-        except NotFoundError:
-            print("Requested resource not found.")
-        except RateLimitError:
-            print("Rate limit exceeded. Please try again later.")
-        except (InternalServerError, APIConnectionError, APITimeoutError) as e:
-            print(f"A server or connection error occurred: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-
-        attempts += 1
-
-    print("Failed to get a valid response after multiple attempts.")
-    return []  # Return an empty list only if all attempts fail
-
-
-def split_into_chunks(text, chunk_size=400):
-    """
-    Splits the book text into manageable chunks, trying to break at sentence endings.
-    'chunk_size' is in characters, adjust based on testing.
-    """
-    chunks = []
-    chunk_count = 0
-    while text:
-        # Take the first 'chunk_size' characters from the book text
-        chunk = text[:chunk_size]
-
-        # Ensure the chunk ends on a complete sentence where possible
-        last_end = max(chunk.rfind("."), chunk.rfind("!"), chunk.rfind("?"))
-        if last_end != -1 and len(chunk) - last_end < 200:
-            # Adjust chunk to end at the last complete sentence
-            chunk = chunk[: last_end + 1]
-            # Adjust the remaining book text starting after the last complete sentence
-            text = text[last_end + 1 :]
-        else:
-            # If no sentence ending is found, or it's too close to the end of the chunk, proceed as usual
-            text = text[chunk_size:]
-
-        chunks.append(chunk)
-        chunk_count += 1
-
-        # Print each chunk with spacing
-        # print(f"Chunk {chunk_count}:\n{chunk}\n\n---\n")
-
-    return chunks
 
 
 def combine_chapter_responses(response_list):
@@ -493,56 +327,6 @@ def combine_chapter_responses(response_list):
 import re
 
 
-def word_list(text):
-    # Split text into words, considering punctuation as separate entities
-    return re.findall(r"\b\w+\b|\S", text.lower())
-
-
-def get_chapters_for_text(text, book_title="Untitled"):
-    print("Processing entire book...")
-
-    chunks = split_into_chunks(text)
-    all_chapters = []
-    last_chapter_title = ""  # Initialize with an empty string
-
-    for chunk_index, chunk in enumerate(chunks):
-        print(f"Processing chunk {chunk_index + 1}: {chunk}")
-        response = gpt_prompt_for_chapter_analysis(chunk, last_chapter_title)
-        chapters = response.get("chapters", [])
-
-        combined_chapter_words = []
-
-        for chapter in chapters:
-            print(f"Found chapter: {chapter.get('chapter_title')}")
-            print(f"Chapter content: {chapter.get('chapter_content')}")
-
-            title = chapter.get("chapter_title", "Untitled")
-            content = chapter.get("chapter_content", "")
-            last_chapter_title = title
-            combined_chapter_words.extend(word_list(title + " " + content))
-
-            chapter_found = False
-            for chapter_dict in all_chapters:
-                if title == chapter_dict.get("chapter_title"):
-                    chapter_found = True
-                    chapter_dict["chapter_content"] += " " + content
-                    break
-            if not chapter_found:
-                all_chapters.append(
-                    {"chapter_title": title, "chapter_content": content}
-                )
-
-        chunk_words = word_list(chunk)
-        missing_words = [
-            word for word in chunk_words if word not in combined_chapter_words
-        ]
-
-        if missing_words:
-            print(f"Missing words in chunk {chunk_index + 1}: {missing_words}")
-
-    return all_chapters
-
-
 def split_into_subchapters(chapter_content, max_length=4000):
     """
     Splits a long chapter into subchapters based on a maximum character length.
@@ -574,7 +358,9 @@ def sanitize_filename(filename):
     )  # Replace invalid characters with underscore
 
 
-def sanitize_filename_from_title(title, chapter_number, subchapter_number=1):
+def get_sanitized_filename_for_chapter_title(
+    title, chapter_number, subchapter_number=1
+):
     sanitized_title = re.sub(r'[<>:"/\\|?*]', "_", title)
     filename = f"{chapter_number:02d}_{sanitized_title}"
     if subchapter_number > 1:
@@ -863,7 +649,6 @@ def setup_main_gui(root):
 
                 # Call the check_audio_files_existence function
                 check_audio_files_existence(chapters, book_title, voice_model_matrix)
-
         else:
             book_title_label.grid_remove()
             book_title_entry.grid_remove()
@@ -1094,10 +879,11 @@ def display_chapters_for_review(chapters, book_title, root):
         # Check if the user provided a chapter number
         if chapter_number is not None:
             # add default matrix prodction
+            voice_model_matrix = get_default_voice_model_matrix("*")
 
-            # Proceed with audio conversion
-            get_chapter_audio_for_chapter(
-                chapter, chapter_number, voice, model, book_title
+            # Create the chapter audio
+            create_chapter_audio_for_voice_model_matrix(
+                voice_model_matrix, [chapter], book_title
             )
 
             # Mark the chapter as converted (e.g., change background color in the list)
@@ -1147,11 +933,14 @@ def display_chapters_for_review(chapters, book_title, root):
 def start_audio_conversion(chapters):
     """
     Starts the audio conversion process for the reviewed chapters.
-
     :param chapters: List of reviewed chapters.
     """
-    create_chapter_audio_for_voice_model_matrix(get_default_voice_model_matrix("*"), )
-    get_default_voice_model_matrix(chapters, global_book_title)
+    create_chapter_audio_for_voice_model_matrix(
+        get_default_voice_model_matrix("*"),
+        chapters=chapters,
+        book_title=global_book_title,
+    )
+
 
 def ask_for_Book_title(root):
     """
@@ -1159,7 +948,7 @@ def ask_for_Book_title(root):
     :param root: The root window of the tkinter application.
     :return: The entered Book title.
     """
-    
+
     Book_title = simpledialog.askstring(
         "Book title Required", "Enter your Book title:", parent=root
     )
@@ -1168,8 +957,9 @@ def ask_for_Book_title(root):
     with open(".env", "w") as file:
         file.write(f"Book_title={Book_title}\n")
 
-    return Book_title    
-    
+    return Book_title
+
+
 def ask_for_api_key(root):
     """
     Asks the user for the OpenAI API key and saves it to a .env file.
